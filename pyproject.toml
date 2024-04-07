@@ -7,7 +7,7 @@ license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.11"
 openai = "^1.16.1"
 flask = "^3.0.2"
 langchain = "^0.1.14"
