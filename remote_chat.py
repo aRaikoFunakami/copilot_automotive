@@ -78,26 +78,26 @@ class LaunchNavigation(BaseTool):
         raise NotImplementedError("not support async")
 
 # AirControl
-class AirControlInput(BaseModel):
+class AirControlDeltaInput(BaseModel):
     temperature_delta: float = Field(descption="""Specify the temperature to be raised or lowered relative to the current temperature setting. 
                             Specify the value at which the temperature is to be raised or lowered in 0.5 degree increments according to the content of the conversation. 
                             For example, if the temperature in the room feels very hot, lower the temperature by 3 degrees.
                             If you feel the temperature in the room is a little cold, increase the temperature by 1 degree.
                             """)
 
-class AirControl(BaseTool):
-    name = "intent_aircontrol"
+class AirControlDelta(BaseTool):
+    name = "intent_aircontrol_delta"
     description = (
         "Use this function to adjust the temperature of an air conditioner based on sensory temperature information."
     )
-    args_schema: Type[BaseModel] = AirControlInput
+    args_schema: Type[BaseModel] = AirControlDeltaInput
     return_direct = True  # if True, Tool returns output directly
 
     def _run(self, temperature_delta: float):
         logging.info(f"temperature_delta = {temperature_delta}")
         response = {
             'intent' : {
-                'aircontrol' : {
+                'aircontrol_delta' : {
                     'temperature_delta' : temperature_delta,
                 },
             },
@@ -109,18 +109,18 @@ class AirControl(BaseTool):
         raise NotImplementedError("not support async")
     
 # AirControl with absolute value
-class AirControlAbsoluteValueInput(BaseModel):
+class AirControlInput(BaseModel):
     temperature: float = Field(descption="""Set the temperature in absolute values.
                             For example, it accepts an instruction to set the temperature to 27°C.
                             Set the temperature in 0.5° increments. For example, specify 10°, 10.5° and 11°.
                             """)
 
-class AirControlAbsoluteValue(BaseTool):
-    name = "intent_aircontrol_absolute_value"
+class AirControl(BaseTool):
+    name = "intent_aircontrol"
     description = (
         "Use this function to set the temperature of the air conditioner based on the target temperature."
     )
-    args_schema: Type[BaseModel] = AirControlAbsoluteValueInput
+    args_schema: Type[BaseModel] = AirControlInput
     return_direct = True  # if True, Tool returns output directly
 
     def _run(self, temperature: float):
@@ -174,20 +174,24 @@ class SimpleConversationRemoteChat:
         WeatherInfo(),
         LaunchNavigation(),
         AirControl(),
-        AirControlAbsoluteValue(),
+        AirControlDelta(),
     ]
     prompt_init = """
 	You are an assistant who helps with the operation of Invhiecle Infotainment (IVI). Drivers can talk to you, enjoy general conversation and ask you to operate the IVI. Your job is to help operate the IVI by invoking the functions added by function call.
+    Your name is NetFront Copilot.
 
     #Applications included in the IVI
     - car navigation applications
     - Air conditioner control application
 
-    #Limitations.
+    #Limitations
     - Answer in the language entered.
     - You must not lie
+    - Explain your function in a way that makes it easy to receive instructions
+    - Ask specific questions to facilitate receiving instructions.
     - Ask the driver if you need additional information
     - Ask the driver if you are missing information needed to help you operate the IVI
+    - Respond as fully as possible. However, respond in a conversational manner.
 
     Respond in the same language as the input text
 	"""
