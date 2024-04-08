@@ -14,8 +14,7 @@ from langchain.agents import initialize_agent
 from langchain.agents import AgentType
 from langchain.prompts import MessagesPlaceholder
 from langchain.memory import ConversationBufferMemory
-from langchain_community.chat_models import ChatOpenAI
-from langchain_community.vectorstores import Chroma
+from langchain_openai import ChatOpenAI
 from langchain.tools import BaseTool
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
@@ -23,7 +22,6 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 import config
 
 
-LAUNCHER_HTML = config.keys["launcher"]
 model_name = config.keys["model_name"]
 test = None
 lang_id = "ja"
@@ -195,10 +193,8 @@ class SimpleConversationRemoteChat:
 	"""
 
     def __init__(self, history):
-        config.load()
         global test
-        #test = RemoteChrome()
-        #test.set_start_url(LAUNCHER_HTML)
+
         self.agent_kwargs = {
             "extra_prompt_messages": [MessagesPlaceholder(variable_name="memory")],
         }
@@ -226,7 +222,7 @@ class SimpleConversationRemoteChat:
             llm = ChatOpenAI(
                 temperature=0,
                 model=model_name,
-                # request_timeout=15,
+                openai_api_key=config.keys["openai_api_key"],
             )
 
             agent_chain = initialize_agent(

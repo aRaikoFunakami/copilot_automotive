@@ -3,8 +3,6 @@ import os, logging
 from typing import Any
 
 import openai
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.vectorstores import Chroma
 import requests
 
 """
