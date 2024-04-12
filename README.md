@@ -77,7 +77,61 @@ cd copilot_automotive
 pkg install -y rust binutils python-cryptography flask openai langid langchain python-numpy
 ```
 
-Copilotサーバーを実行する
+#### デモ用のSelenium環境をインストールする
+Chromeの音声コントロールデモで利用しているSeleniumをインストールする。
+- [TermuxへのSeleniumとWebDriverのインストールと設定方法](https://github.com/luanon404/Selenium-On-Termux-Android)
+
+Seleniumのインストール
+
+```terminal:Termuxで実行する
+yes | pkg update -y && yes | pkg upgrade -y
+yes | pkg install python-pip -y
+pip install selenium==4.9.1
+```
+Android SDKのインストール
+
+```terminal:Termuxで実行する
+yes | pkg install wget -y
+cd $HOME
+wget https://github.com/Lzhiyong/termux-ndk/releases/download/android-sdk/android-sdk-aarch64.zip
+unzip android-sdk-aarch64.zip -d android-sdk
+rm -r android-sdk-aarch64.zip
+echo "export ANDROID_HOME=$HOME/android-sdk" >> $HOME/.bashrc
+echo "export PATH=$PATH:$ANDROID_HOME/tools:$ANDROID_HOME/tools/bin:$ANDROID_HOME/platform-tools" >> $HOME/.bashrc
+```
+
+WebDriverのインストール
+```terminal:Termuxで実行する
+yes | pkg install android-tools -y
+yes | pkg install x11-repo -y
+yes | pkg install tur-repo -y
+yes | pkg install chromium -y
+```
+
+glibの依存関係でchromiumのインストールに失敗した場合は依存関係を解決する
+```terminal:Termuxで実行する
+pkg install glib=2.78.1-1
+pkg install chromium
+```
+
+ホストPC側からAndroidをUSB接続からtcpip接続に変更する。tcpip接続に変更しないとTermulのホストのAndroidデバイスを認識しない。
+```terminal: ホストPC
+adb tcpip 5555
+```
+
+Termux側でAndroidに接続
+```terminal: Termuxで実行
+adb kill-server
+adb devices
+```
+
+デバイスが emulator として見える
+```terminal
+List of devices attached
+emulator-5554	unauthorized
+```
+
+#### Copilotサーバーを実行する
 ```terminal:Termuxで実行する
 python app.py
 ```
