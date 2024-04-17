@@ -22,6 +22,7 @@ from controller_chrome import ChromeController
 import function_seach_videos
 import function_play_video
 import function_weather
+import function_launch_navigation
 
 # init openai
 import config
@@ -29,39 +30,6 @@ import config
 
 model_name = config.keys["model_name"]
 lang_id = "ja"
-
-
-# Googla Map Navigationを起動する
-class LaunchNavigationInput(BaseModel):
-    latitude: float = Field(descption="Specify the Latitude of the destination.")
-    longitude: float = Field(description="Specify the longitude of the destination")
-
-
-class LaunchNavigation(BaseTool):
-    name = "intent_googlenavigation"
-    description = (
-        "Use this function to provides route guidance to a specified location."
-    )
-    args_schema: Type[BaseModel] = LaunchNavigationInput
-    return_direct = True  # if True, Tool returns output directly
-
-    def _run(self, latitude: float, longitude: float):
-        logging.info(f"lat, lon = {latitude}, {longitude}")
-        response = {
-            'intent' : {
-                'navigation' : {
-                    'navi_application' : "googlemap",
-                    'latitude' : latitude,
-                    'longitude' : longitude,
-                },
-            },
-        }
-        logging.info(f"response: {response}")
-        return json.dumps(response, ensure_ascii=False)
-        #return response
-
-    def _arun(self, ticker: str):
-        raise NotImplementedError("not support async")
 
 # AirControl
 class AirControlDeltaInput(BaseModel):
@@ -158,7 +126,7 @@ class ChainStreamHandler(StreamingStdOutCallbackHandler):
 class SimpleConversationRemoteChat:
     tools = [
         function_weather.WeatherInfo(),
-        LaunchNavigation(),
+        function_launch_navigation.LaunchNavigation(),
         AirControl(),
         AirControlDelta(),
         function_seach_videos.SearchVideos(),
