@@ -21,6 +21,7 @@ from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 from controller_chrome import ChromeController
 import function_seach_videos
 import function_play_video
+import function_weather
 
 # init openai
 import config
@@ -29,23 +30,6 @@ import config
 model_name = config.keys["model_name"]
 lang_id = "ja"
 
-# Weather
-from openai_function_weather import get_weather_info
-class WeatherInfoInput(BaseModel):
-    latitude: float = Field(descption="latitude")
-    longitude: float = Field(descption="longitude")
-
-class WeatherInfo(BaseTool):
-    name = "get_weather_info"
-    description = "This is useful when you want to know the weather forecast. Enter longitude in the latitude field and latitude in the longitude field."
-    args_schema: Type[BaseModel] = WeatherInfoInput
-
-    def _run(self, latitude: float, longitude: float):
-        logging.info(f"get_weather_info(latitude, longitude)")
-        return get_weather_info(latitude, longitude)
-
-    def _arun(self, ticker: str):
-        raise NotImplementedError("not support async")
 
 # Googla Map Navigationを起動する
 class LaunchNavigationInput(BaseModel):
@@ -173,7 +157,7 @@ class ChainStreamHandler(StreamingStdOutCallbackHandler):
 
 class SimpleConversationRemoteChat:
     tools = [
-        WeatherInfo(),
+        function_weather.WeatherInfo(),
         LaunchNavigation(),
         AirControl(),
         AirControlDelta(),
