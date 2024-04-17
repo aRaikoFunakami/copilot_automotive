@@ -23,75 +23,13 @@ import function_seach_videos
 import function_play_video
 import function_weather
 import function_launch_navigation
+import function_aircontrol
 
 # init openai
 import config
 
-
 model_name = config.keys["model_name"]
 lang_id = "ja"
-
-# AirControl
-class AirControlDeltaInput(BaseModel):
-    temperature_delta: float = Field(descption="""Specify the temperature to be raised or lowered relative to the current temperature setting. 
-                            Specify the value at which the temperature is to be raised or lowered in 0.5 degree increments according to the content of the conversation. 
-                            For example, if the temperature in the room feels very hot, lower the temperature by 3 degrees.
-                            If you feel the temperature in the room is a little cold, increase the temperature by 1 degree.
-                            """)
-
-class AirControlDelta(BaseTool):
-    name = "intent_aircontrol_delta"
-    description = (
-        "Use this function to adjust the temperature of an air conditioner based on sensory temperature information."
-    )
-    args_schema: Type[BaseModel] = AirControlDeltaInput
-    return_direct = True  # if True, Tool returns output directly
-
-    def _run(self, temperature_delta: float):
-        logging.info(f"temperature_delta = {temperature_delta}")
-        response = {
-            'intent' : {
-                'aircontrol_delta' : {
-                    'temperature_delta' : temperature_delta,
-                },
-            },
-        }
-        logging.info(f"response: {response}")
-        return json.dumps(response, ensure_ascii=False)
-
-    def _arun(self, ticker: str):
-        raise NotImplementedError("not support async")
-    
-# AirControl with absolute value
-class AirControlInput(BaseModel):
-    temperature: float = Field(descption="""Set the temperature in absolute values.
-                            For example, it accepts an instruction to set the temperature to 27°C.
-                            Set the temperature in 0.5° increments. For example, specify 10°, 10.5° and 11°.
-                            """)
-
-class AirControl(BaseTool):
-    name = "intent_aircontrol"
-    description = (
-        "Use this function to set the temperature of the air conditioner based on the target temperature."
-    )
-    args_schema: Type[BaseModel] = AirControlInput
-    return_direct = True  # if True, Tool returns output directly
-
-    def _run(self, temperature: float):
-        logging.info(f"temperature = {temperature}")
-        response = {
-            'intent' : {
-                'aircontrol' : {
-                    'temperature' : temperature,
-                },
-            },
-        }
-        logging.info(f"response: {response}")
-        return json.dumps(response, ensure_ascii=False)
-        #return response
-
-    def _arun(self, ticker: str):
-        raise NotImplementedError("not support async")
 
 
 class ThreadedGenerator:
@@ -127,8 +65,8 @@ class SimpleConversationRemoteChat:
     tools = [
         function_weather.WeatherInfo(),
         function_launch_navigation.LaunchNavigation(),
-        AirControl(),
-        AirControlDelta(),
+        function_aircontrol.AirControl(),
+        function_aircontrol.AirControlDelta(),
         function_seach_videos.SearchVideos(),
         function_play_video.SelectLinkByNumber(), #Play Video by Number
         
