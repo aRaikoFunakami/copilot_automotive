@@ -14,18 +14,20 @@ from langchain.agents import initialize_agent
 from langchain.agents import AgentType
 from langchain.prompts import MessagesPlaceholder
 from langchain.memory import ConversationBufferMemory
-from langchain_openai import ChatOpenAI
+from langchain_community.chat_models import ChatOpenAI
 from langchain.tools import BaseTool
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+
+from controller_chrome import ChromeController
+import function_seach_videos
+import function_play_video
 
 # init openai
 import config
 
 
 model_name = config.keys["model_name"]
-test = None
 lang_id = "ja"
-
 
 # Weather
 from openai_function_weather import get_weather_info
@@ -175,6 +177,9 @@ class SimpleConversationRemoteChat:
         LaunchNavigation(),
         AirControl(),
         AirControlDelta(),
+        function_seach_videos.SearchVideos(),
+        function_play_video.SelectLinkByNumber(), #Play Video by Number
+        
     ]
     prompt_init = """
 	You are an assistant who helps with the operation of Invhiecle Infotainment (IVI). Drivers can talk to you, enjoy general conversation and ask you to operate the IVI. Your job is to help operate the IVI by invoking the functions added by function call.
@@ -203,7 +208,7 @@ class SimpleConversationRemoteChat:
 	"""
 
     def __init__(self, history):
-        global test
+        chromeController = ChromeController.get_instance()
 
         self.agent_kwargs = {
             "extra_prompt_messages": [MessagesPlaceholder(variable_name="memory")],
