@@ -1,3 +1,10 @@
+"""
+The implementation is made using Selenium for demonstration purposes. 
+Normally, Selenium is not used to control the browser, but sends JSON 
+commands to the client to control the browser, and the client 
+communicates with the browser to control the browser.
+"""
+
 import json
 import logging
 from typing import Any, Type
