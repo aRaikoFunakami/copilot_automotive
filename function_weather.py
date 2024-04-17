@@ -72,8 +72,11 @@ class WeatherInfo(BaseTool):
             logging.info("Weather data retrieved successfully.")
             return weather_data
         except Exception as e:
-            logging.error(f"Failed to fetch weather data: {str(e)}")
-            return {"error": "Failed to fetch weather data due to an internal error"}
+            response = {
+                'error' : f"Failed to fetch weather data: {str(e)}"
+            }
+            logging.error(response)
+            return json.dumps(response, ensure_ascii=False)
 
     def _arun(self, ticker: str):
         raise NotImplementedError("Asynchronous execution is not supported.")
