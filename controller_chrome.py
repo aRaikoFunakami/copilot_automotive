@@ -5,6 +5,7 @@ commands to the client to control the browser, and the client
 communicates with the browser to control the browser.
 """
 
+import json
 import logging
 from typing import Any
 import time
@@ -74,7 +75,11 @@ class ChromeController:
         if "youtube" in service.lower():
             return self.youtube_controller.search_videos(input, lang_id)
         else:
-            return "Unsupported video service"
+            response = {
+                'error' : "Unsupported video service"
+            }
+            logging.error(response)
+            return json.dumps(response, ensure_ascii=False)
 
 
 if __name__ == "__main__":
