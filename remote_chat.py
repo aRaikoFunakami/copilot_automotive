@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 from typing import Any, Type
@@ -71,31 +72,57 @@ class SimpleConversationRemoteChat:
         function_play_video.SelectLinkByNumber(), #Play Video by Number
         
     ]
-    prompt_init = """
-	You are an assistant who helps with the operation of Invhiecle Infotainment (IVI). Drivers can talk to you, enjoy general conversation and ask you to operate the IVI. Your job is to help operate the IVI by invoking the functions added by function call.
-    Your name is NetFront Copilot.
+    prompt_init = '''
+    Interpret the instructions given in Markdown.
 
-    #Applications included in the IVI
+    # Role
+    Your name is NetFront Copilot.
+	You are an assistant who helps with the operation of Invhiecle Infotainment (IVI). 
+    Drivers can talk to you, enjoy general conversation and ask you to operate the IVI. 
+    Your job is to help operate the IVI by invoking the functions added by function call.
+    You make it a top priority to help drivers in a friendly manner. 
+    If you don't know something, ask appropriate questions and get instructions from the driver.
+
+    # Applications in the IVI on Automotive
     - car navigation
     - Air conditioner control
 
-    #Limitations
+    # Limitations
     - Answer in the language entered.
     - You must not lie
-    - Explain your function in a way that makes it easy to receive instructions
     - Ask specific questions to facilitate receiving instructions.
     - Ask the driver if you need additional information
     - Ask the driver if you are missing information needed to help you operate the IVI
     - Respond as fully as possible. However, respond in a conversational manner.
 
-    #Function Calling
+    # Function Calling
     If the driver commands a call to the next function, use function call to answer.
     - Setting up the in-car navigation system
     - Setting the interior temperature
     - Setting the air conditioning
 
+    # Response
     Respond in the same language as the input text
-	"""
+    - If the language in car_info is set, answer in the set language.
+    
+    # Input
+    The user input is in the form of JSON.
+    - car_info is the vehicle information. 
+    - user_input is the instructions from the driver.
+	'''
+    prompt_weather = '''
+    Interpret the instructions given in Markdown.
+    # Weather
+    Weather forecasts should be answered with a human touch.
+    '''
+    prompt_car_info = '''
+    Interpret the instructions given in Markdown.
+    # Car Infomation
+    check car information from car_info
+    take the car information into account as reference information when you prepare your response.
+    - Driver caution if vehicle speed is above 120 km/h
+    - Suggest refuelling to the driver if there is less than 30% fuel remaining
+    '''
 
     def __init__(self, history):
         chromeController = ChromeController.get_instance()
@@ -108,6 +135,8 @@ class SimpleConversationRemoteChat:
         )
         prompts = [
             self.prompt_init,
+            self.prompt_weather,
+            self.prompt_car_info,
         ]
         for prompt in prompts:
             self.memory.save_context({"input": prompt}, {"ouput": "I understood!"})
@@ -158,35 +187,27 @@ if __name__ == "__main__":
     def chat():
         
         chat = SimpleConversationRemoteChat("")
-        user_input = '''
-あなたはIVIに組み込まれたユーザーをサポートとするエージェントです。
-現在の車両状況を解釈して条件に従い必要な提案を行いなさい。
-車両情報はCOVESAのVehicle Signal Specification(VSS)の仕様に基づいて解釈しなさい
-# 車両情報
-{
-    "VehicleLanguage": {
-        "path": "Vehicle.Cabin.Infotainment.LanguageSetting",
-        "value": "Japanese"
-    },
-    "VehicleSpeed": {
-        "path": "Vehicle.Speed",
-        "value": 80
-    },
-    "FuelLevel": {
-        "description" : "100 means 100%. This car drive 500km with full filled fuel."
-        "path": "Vehicle.Fuel.Level",
-        "value": 10
-    }
-}
-# 条件
-車両情報を確認しユーザーにアドバイスする
-- 燃料が少ない場合には燃料の補給を促す
-- 速度が早すぎる場合には安全運転を促す
-- 言語設定にしたがって回答言語を選択する
-# ユーザーのインプット
-
-おはようございます。あなたのお名前は？いま東京にいるのですが、北海道までくるまで1000kmドライブして向かいます。
+        today = datetime.date.today()
+        formatted_today = today.strftime('%Y-%m-%d')
+        now = datetime.datetime.now()
+        current_time = now.strftime('%H:%M:%S')
+        
+        user_input = f'''
+{{
+  "car_info": {{
+      "vehicle_speed": "300",
+      "vehicle_speed_description": "Indicates the current speed of the vehicle. Unit is km. 60 means 60 km.",
+      "fuel_level": "12",
+      "fuel_level_description": "Fuel level in %, where 75 means 75%.",
+      "language": "en"
+  }},
+  "today": "{formatted_today}",
+  "current_time": "{current_time}",
+  "user_input": "今日のロンドンの天気は？"
+}}
 '''
+
+
         chat.llm_run(user_input)
         """
         while True:

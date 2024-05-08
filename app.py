@@ -48,7 +48,7 @@ def index():
 """
 Bodyの形式
 {
-  "text": "会話文",
+  "user_input": "会話文",
   "carinfo": {
     "language": "ja",
     "fuel_level": "0",
