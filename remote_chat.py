@@ -156,12 +156,45 @@ if __name__ == "__main__":
     )
 
     def chat():
+        
         chat = SimpleConversationRemoteChat("")
+        user_input = '''
+あなたはIVIに組み込まれたユーザーをサポートとするエージェントです。
+現在の車両状況を解釈して条件に従い必要な提案を行いなさい。
+車両情報はCOVESAのVehicle Signal Specification(VSS)の仕様に基づいて解釈しなさい
+# 車両情報
+{
+    "VehicleLanguage": {
+        "path": "Vehicle.Cabin.Infotainment.LanguageSetting",
+        "value": "Japanese"
+    },
+    "VehicleSpeed": {
+        "path": "Vehicle.Speed",
+        "value": 80
+    },
+    "FuelLevel": {
+        "description" : "100 means 100%. This car drive 500km with full filled fuel."
+        "path": "Vehicle.Fuel.Level",
+        "value": 10
+    }
+}
+# 条件
+車両情報を確認しユーザーにアドバイスする
+- 燃料が少ない場合には燃料の補給を促す
+- 速度が早すぎる場合には安全運転を促す
+- 言語設定にしたがって回答言語を選択する
+# ユーザーのインプット
+
+おはようございます。あなたのお名前は？いま東京にいるのですが、北海道までくるまで1000kmドライブして向かいます。
+'''
+        chat.llm_run(user_input)
+        """
         while True:
             user_input = input("Enter the text to search (or 'exit' to quit): ")
             if user_input.lower() == "exit":
                 break
             chat.llm_run(user_input)
+        """
 
     # Run the chat in the main thread
     chat()

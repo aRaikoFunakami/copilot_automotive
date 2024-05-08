@@ -6,7 +6,7 @@ import threading
 import config
 from remote_chat import SimpleConversationRemoteChat
 
-language = 'ja-JP'
+language = 'ja'
 openai.api_key = "YOUR_API_KEY"
 app = Flask(__name__, static_folder="./templates", static_url_path="")
 
@@ -45,15 +45,39 @@ def index():
     return render_template("index.html")
 
 
-@app.route('/input')
+"""
+Bodyの形式
+{
+  "text": "会話文",
+  "carinfo": {
+    "language": "ja",
+    "fuel_level": "0",
+    "vehicle_speed": "0"
+  }
+}
+"""
+@app.route('/input', methods=['POST'])
 def input_text():
-    text_value = request.args.get('text', '') 
+    # JSON データをリクエストから取得
+    if request.is_json:
+        data = request.get_json()
+        text_value = data.get('user_input', '')
+        carinfo = data.get('car_info', {})
+        # 車情報が辞書であることを確認
+        if not isinstance(carinfo, dict):
+            return jsonify({'error': 'Invalid carinfo data'}), 400
+    else:
+        return jsonify({"error": "Request must be JSON"}), 400
+    
+    # JSON形式でLLMに入力する
+    input_json_string = json.dumps(data, indent=2, ensure_ascii=False)
+    logging.info(f"input_json_string: {input_json_string}")
+
     global remote_chat
-    response = remote_chat.llm_run(text_value)
+    response = remote_chat.llm_run(input_json_string)
 
     # 返り値が文字列の場合、JSONかどうかをチェック
     if isinstance(response, str):
-
         try:
             # 文字列をJSONとして解析
             parsed_response = json.loads(response)
@@ -62,7 +86,7 @@ def input_text():
             response_data = {
                 'received_text': text_value,
                 'response_text': ""
-             }
+            }
             response_data.update(parsed_response)
         except json.JSONDecodeError:
             # JSONとして解析できない場合、通常の文字列として処理
@@ -70,15 +94,15 @@ def input_text():
                 'received_text': text_value,
                 'response_text': response  # 元の文字列をそのまま使用
             }
-    # 返り値が文字列でない場合の処理
     else:
+        # 返り値が文字列でない場合の処理
         response_data = {
             'received_text': text_value,
-            'response_text': "Invalid response type",
+            'response_text': "Invalid response type"
         }
 
-    logging.debug(response_data)  
-    return jsonify(response_data)  
+    logging.debug(response_data)
+    return jsonify(response_data) 
 
 def run_server():
     app.run(host="0.0.0.0", port=8080, debug=True, use_reloader=False)
