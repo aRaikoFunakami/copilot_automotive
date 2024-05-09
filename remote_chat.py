@@ -85,7 +85,7 @@ class SimpleConversationRemoteChat:
     # Car Information
     - Continuously monitor `car_info` for vital vehicle data.
     - Alert the driver if the vehicle speed exceeds 120 km/h, suggesting slowing down to ensure safety.
-    - Recommend refueling if the fuel level drops below 30%, ensuring the driver is aware of the need to refuel to avoid running out of fuel.
+    - Alert refueling if the fuel level drops below 30%, ensuring the driver is aware of the need to refuel to avoid running out of fuel.
 
     # Guidelines
     - Always respond in the language of the input.
