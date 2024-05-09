@@ -124,7 +124,7 @@ class SimpleConversationRemoteChat:
     '''
 
     def __init__(self, history):
-        chromeController = ChromeController.get_instance()
+        self.chromeController = ChromeController.get_instance()
 
         self.agent_kwargs = {
             "extra_prompt_messages": [MessagesPlaceholder(variable_name="memory")],
@@ -133,7 +133,12 @@ class SimpleConversationRemoteChat:
             memory_key="memory", return_messages=True
         )
         self.memory.save_context({"input": self.prompt_init}, {"ouput": "I understood!"})
-        
+    
+    def __del__(self):
+        self.quit()
+
+    def quit(self):
+        self.chromeController.quit()
 
     def generator(self, user_message):
         g = ThreadedGenerator()

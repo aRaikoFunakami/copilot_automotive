@@ -68,6 +68,10 @@ class ChromeController:
         self.youtube_controller.set_driver(self.driver)
 
     def __del__(self):
+        self.quit()
+
+    def quit(self):
+        self.driver.close()
         self.driver.quit()
 
     def search_videos(self, service: str, input: str, lang_id: str = "ja"):
@@ -87,3 +91,4 @@ if __name__ == "__main__":
     controller = ChromeController.get_instance()
     controller.search_videos("youtube", "フリーレン")
     time.sleep(1)
+    controller.quit()

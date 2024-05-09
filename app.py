@@ -130,5 +130,6 @@ if __name__ == "__main__":
 
     # debug
     chat()
+    remote_chat.quit()
 
 
