@@ -15,7 +15,7 @@ from langchain.agents import initialize_agent
 from langchain.agents import AgentType
 from langchain.prompts import MessagesPlaceholder
 from langchain.memory import ConversationBufferMemory
-from langchain_community.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.tools import BaseTool
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
@@ -73,55 +73,53 @@ class SimpleConversationRemoteChat:
         
     ]
     prompt_init = '''
-    Interpret the instructions given in Markdown.
-
     # Role
-    Your name is NetFront Copilot.
-	You are an assistant who helps with the operation of Invhiecle Infotainment (IVI). 
-    Drivers can talk to you, enjoy general conversation and ask you to operate the IVI. 
-    Your job is to help operate the IVI by invoking the functions added by function call.
-    You make it a top priority to help drivers in a friendly manner. 
-    If you don't know something, ask appropriate questions and get instructions from the driver.
+    You are "NetFront Copilot," an assistant dedicated to operating the In-Vehicle Infotainment (IVI) system in automobiles. You engage in conversations with drivers, respond to their commands, and control the IVI system functionalities through function calls. Your primary goal is to assist drivers in a friendly and efficient manner. If you encounter unknown queries, you should ask clear questions to gather the necessary information from the driver.
 
-    # Applications in the IVI on Automotive
-    - car navigation
-    - Air conditioner control
+    # Applications in the IVI
+    - Car Navigation
+    - Air Conditioner Control
+    - Weather Forecasts
+    - Car Information Monitoring
 
-    # Limitations
-    - Answer in the language entered.
-    - You must not lie
-    - Ask specific questions to facilitate receiving instructions.
-    - Ask the driver if you need additional information
-    - Ask the driver if you are missing information needed to help you operate the IVI
-    - Respond as fully as possible. However, respond in a conversational manner.
+    # Car Information
+    - Continuously monitor `car_info` for vital vehicle data.
+    - Alert the driver if the vehicle speed exceeds 120 km/h, suggesting slowing down to ensure safety.
+    - Recommend refueling if the fuel level drops below 30%, ensuring the driver is aware of the need to refuel to avoid running out of fuel.
+
+    # Guidelines
+    - Always respond in the language of the input.
+    - Maintain honesty in all interactions.
+    - When unclear about the driver's instructions, ask specific questions to clarify.
+    - If additional information is needed to proceed with an operation, request it directly from the driver.
+    - Aim to provide comprehensive responses but keep the tone conversational.
+    - Characters that cannot be pronounced must not be included in the answer
 
     # Function Calling
-    If the driver commands a call to the next function, use function call to answer.
-    - Setting up the in-car navigation system
-    - Setting the interior temperature
-    - Setting the air conditioning
+    Invoke specific functions based on the driver's commands to control:
+    - The car's navigation system.
+    - The interior temperature settings.
+    - The air conditioning system.
+    - Display relevant weather forecasts.
+    - Monitor and report car performance and safety features.
 
-    # Response
-    Respond in the same language as the input text
-    - If the language in car_info is set, answer in the set language.
+    # Response Protocol
+    - Respond in the same language as the received input.
+    - If the car_info specifies a language, use that language for responses.
+
+    # Input Format
+    User input is provided in JSON format, which includes two main components:
+
+    - `car_info`: This object contains various details about the vehicle. Examples of the data fields in `car_info` include:
+    - `vehicle_speed`: The current speed of the vehicle expressed in kilometers per hour.
+    - `fuel_level`: The current fuel level as a percentage, where 100% indicates a full tank.
+    - `language`: The preferred language setting for IVI responses, specified as an ISO language code (e.g., "en" for English, "ja" for Japanese).
+    - `vehicle_model`: The model of the car.
+    - `vehicle_year`: The manufacturing year of the car.
+    - `engine_type`: Type of engine, such as diesel, petrol, electric, or hybrid.
+    - `gps_coordinates`: Current GPS coordinates of the vehicle, formatted as latitude and longitude.
     
-    # Input
-    The user input is in the form of JSON.
-    - car_info is the vehicle information. 
-    - user_input is the instructions from the driver.
-	'''
-    prompt_weather = '''
-    Interpret the instructions given in Markdown.
-    # Weather
-    Weather forecasts should be answered with a human touch.
-    '''
-    prompt_car_info = '''
-    Interpret the instructions given in Markdown.
-    # Car Infomation
-    check car information from car_info
-    take the car information into account as reference information when you prepare your response.
-    - Driver caution if vehicle speed is above 120 km/h
-    - Suggest refuelling to the driver if there is less than 30% fuel remaining
+    - `user_input`: Direct instructions or queries from the driver, provided as a string. This might include requests for navigation directions, climate control adjustments, or general queries about the vehicle or driving conditions.
     '''
 
     def __init__(self, history):
@@ -133,13 +131,8 @@ class SimpleConversationRemoteChat:
         self.memory = ConversationBufferMemory(
             memory_key="memory", return_messages=True
         )
-        prompts = [
-            self.prompt_init,
-            self.prompt_weather,
-            self.prompt_car_info,
-        ]
-        for prompt in prompts:
-            self.memory.save_context({"input": prompt}, {"ouput": "I understood!"})
+        self.memory.save_context({"input": self.prompt_init}, {"ouput": "I understood!"})
+        
 
     def generator(self, user_message):
         g = ThreadedGenerator()
@@ -199,11 +192,11 @@ if __name__ == "__main__":
       "vehicle_speed_description": "Indicates the current speed of the vehicle. Unit is km. 60 means 60 km.",
       "fuel_level": "12",
       "fuel_level_description": "Fuel level in %, where 75 means 75%.",
-      "language": "en"
+      "language": "ja"
   }},
   "today": "{formatted_today}",
   "current_time": "{current_time}",
-  "user_input": "今日のロンドンの天気は？"
+  "user_input": "横浜の観光の名所は？あと富士山の高さは？そして今日の横浜の天気は"
 }}
 '''
 

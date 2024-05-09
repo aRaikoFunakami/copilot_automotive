@@ -27,7 +27,11 @@ def get_weather_info(latitude:float, longitude:float):
     if response.status_code == 200:
         data = response.json()
         logging.info(data)
-        return json.dumps(data)
+        prompt = """
+            # Guidelines
+            Weather forecasts should be delivered with a human touch, making them relatable and easy to understand for the driver. Provide weather updates in a conversational tone that mimics how a weather announcer would present them.
+        """
+        return json.dumps(data) + prompt
     else:
         return None
 
