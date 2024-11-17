@@ -25,8 +25,8 @@ from controller_youtube import YouTubeController
 # is_termux = True
 is_termux = False
 
-# is_android_tablet = True
-is_android_tablet = False
+is_android_tablet = True
+# is_android_tablet = False
 #########################################################
 
 
@@ -58,8 +58,9 @@ class ChromeController:
         # Only attempt to install and use the ChromeDriverManager if not running on Termux
         # Ensure correct handling of the service parameter
         if not is_termux:
-            service = Service(ChromeDriverManager().install())
-            self.driver = webdriver.Chrome(service=service, options=options)
+            #service = Service(ChromeDriverManager().install())
+            #self.driver = webdriver.Chrome(service=service, options=options)
+            self.driver = webdriver.Chrome(options=options)
         else:
             # For Termux, the service parameter is not needed as Termux has a specific way of handling drivers
             self.driver = webdriver.Chrome(options=options)
