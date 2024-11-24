@@ -10,10 +10,10 @@ class LaunchNavigationInput(BaseModel):
     longitude: float = Field(description="Specify the longitude of the destination.")
 
 class LaunchNavigation(BaseTool):
-    name = "intent_googlenavigation"
-    description = "Use this function to provide route guidance to a specified location."
+    name: str = "intent_googlenavigation"
+    description: str = "Use this function to provide route guidance to a specified location."
     args_schema: Type[BaseModel] = LaunchNavigationInput
-    return_direct = True  # if True, Tool returns output directly
+    return_direct: bool = True  # if True, Tool returns output directly
 
     def _run(self, latitude: float, longitude: float):
         logging.info(f"lat, lon = {latitude}, {longitude}")

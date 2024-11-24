@@ -25,8 +25,8 @@ from controller_youtube import YouTubeController
 # is_termux = True
 is_termux = False
 
-is_android_tablet = True
-# is_android_tablet = False
+# is_android_tablet = True
+is_android_tablet = False
 #########################################################
 
 

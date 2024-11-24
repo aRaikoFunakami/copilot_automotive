@@ -6,18 +6,19 @@ from pydantic import BaseModel, Field
 import threading
 import queue
 import langid
+import time
 from flask import Flask, render_template, request, jsonify
 
 #
 # LangChain related test codes
 #
-from langchain.agents import initialize_agent
-from langchain.agents import AgentType
-from langchain.prompts import MessagesPlaceholder
-from langchain.memory import ConversationBufferMemory
-from langchain_openai import ChatOpenAI
-from langchain.tools import BaseTool
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import HumanMessage
+from langchain_community.tools.tavily_search import TavilySearchResults
+from langgraph.prebuilt import create_react_agent
+from langgraph.checkpoint.memory import MemorySaver
 
 from controller_chrome import ChromeController
 import function_seach_videos
@@ -64,13 +65,15 @@ class ChainStreamHandler(StreamingStdOutCallbackHandler):
 
 class SimpleConversationRemoteChat:
     tools = [
-        function_weather.WeatherInfo(),
+        # Get the latest informaion : export TAVILY_API_KEY="tvly-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        TavilySearchResults(max_results=2), 
+        # Get current weather from latitude and longitude information  
+        function_weather.WeatherInfo(),     
         function_launch_navigation.LaunchNavigation(),
         function_aircontrol.AirControl(),
         function_aircontrol.AirControlDelta(),
         function_seach_videos.SearchVideos(),
-        function_play_video.SelectLinkByNumber(), #Play Video by Number
-        
+        function_play_video.SelectLinkByNumber(), #Play Video by Number       
     ]
     prompt_init = '''
     # Role
@@ -125,20 +128,17 @@ class SimpleConversationRemoteChat:
 
     def __init__(self, history):
         self.chromeController = ChromeController.get_instance()
-
-        self.agent_kwargs = {
-            "extra_prompt_messages": [MessagesPlaceholder(variable_name="memory")],
-        }
-        self.memory = ConversationBufferMemory(
-            memory_key="memory", return_messages=True
-        )
-        self.memory.save_context({"input": self.prompt_init}, {"ouput": "I understood!"})
+        self.memory = MemorySaver()
     
     def __del__(self):
         self.quit()
 
     def quit(self):
-        self.chromeController.quit()
+        try:
+            self.chromeController.quit()
+        except Exception as e:
+            logging.warning(f"Failed to quit ChromeController: {e}")
+        print("quit")
 
     def generator(self, user_message):
         g = ThreadedGenerator()
@@ -152,21 +152,21 @@ class SimpleConversationRemoteChat:
             logging.debug(f"memory: {self.memory}")
             logging.info(f"lang_id: {lang_id}")
 
-            llm = ChatOpenAI(
+            model = ChatOpenAI(
                 temperature=0,
                 model=model_name,
                 openai_api_key=config.keys["openai_api_key"],
             )
 
-            agent_chain = initialize_agent(
+            agent_executor = create_react_agent(
+                model=model,
                 tools=self.tools,
-                llm=llm,
-                agent=AgentType.OPENAI_FUNCTIONS,
-                verbose=True,
-                agent_kwargs=self.agent_kwargs,
-                memory=self.memory,
+                checkpointer=self.memory,
             )
-            response = agent_chain.run(input=user_message)
+
+            thread_config = {"configurable": {"thread_id": "this shall be managed for each connection"}}
+            response = agent_executor.invoke({"messages": [HumanMessage(content=user_message)]}, thread_config)
+            print(response["messages"][-1].content)
             return response
         finally:
             g.close()
@@ -177,6 +177,35 @@ class SimpleConversationRemoteChat:
         return self.llm_thread(g, user_message)
 
 
+test_user_input = {
+  "car_info": {
+      "vehicle_speed": "300",
+      "vehicle_speed_description": "Indicates the current speed of the vehicle. Unit is km. 60 means 60 km.",
+      "fuel_level": "12",
+      "fuel_level_description": "Fuel level in %, where 75 means 75%.",
+      "language": "ja"
+  },
+  "today": datetime.date.today().strftime('%Y-%m-%d'),
+  "current_time": datetime.datetime.now().strftime('%H:%M:%S'),
+  "user_input": "横浜の観光の名所は？あと富士山の高さは？そして今日の横浜の天気は"
+}
+
+
+auto_test = True
+
+auto_test_queries = [
+    "今日は、私の名前はボブです。あなたの名前は？",
+    "今日の日付は",
+    "今何時？",
+    "私の名前を覚えていますか？",
+    "エアコンの温度を二度上げて",
+    "明日の横浜の天気は？",
+    "横浜の観光名所は？",
+    "山下公園の緯度と軽度は？",
+    "山下公園までのルートを教えて",
+    "フリーレンの動画を検索して", 
+]
+
 if __name__ == "__main__":
     logging.basicConfig(
         format="[%(asctime)s] [%(process)d] [%(levelname)s] [%(filename)s:%(lineno)d %(funcName)s] [%(message)s]",
@@ -184,37 +213,26 @@ if __name__ == "__main__":
     )
 
     def chat():
-        
         chat = SimpleConversationRemoteChat("")
-        today = datetime.date.today()
-        formatted_today = today.strftime('%Y-%m-%d')
-        now = datetime.datetime.now()
-        current_time = now.strftime('%H:%M:%S')
+
+        # auto test
+        if auto_test == True:
+            for query in auto_test_queries:
+                test_user_input["user_input"] = query
+                print("query = ", test_user_input)
+                chat.llm_run(json.dumps(test_user_input, ensure_ascii=False))
+            time.sleep(10)
+            return
         
-        user_input = f'''
-{{
-  "car_info": {{
-      "vehicle_speed": "300",
-      "vehicle_speed_description": "Indicates the current speed of the vehicle. Unit is km. 60 means 60 km.",
-      "fuel_level": "12",
-      "fuel_level_description": "Fuel level in %, where 75 means 75%.",
-      "language": "ja"
-  }},
-  "today": "{formatted_today}",
-  "current_time": "{current_time}",
-  "user_input": "横浜の観光の名所は？あと富士山の高さは？そして今日の横浜の天気は"
-}}
-'''
-
-
-        chat.llm_run(user_input)
-        """
+        # manual test
         while True:
             user_input = input("Enter the text to search (or 'exit' to quit): ")
             if user_input.lower() == "exit":
                 break
-            chat.llm_run(user_input)
-        """
+            test_user_input["user_input"] = user_input
+            chat.llm_run(json.dumps(test_user_input, ensure_ascii=False))
+        #return chat.llm_run(test_user_input)
+
 
     # Run the chat in the main thread
     chat()

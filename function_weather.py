@@ -65,9 +65,10 @@ class WeatherInfoInput(BaseModel):
     longitude: float = Field(description="Longitude of the location.")
 
 class WeatherInfo(BaseTool):
-    name = "get_weather_info"
-    description = "This tool is used to fetch the weather forecast for a specified location."
+    name: str = "get_weather_info"
+    description: str = "This tool is used to fetch the weather forecast for a specified location."
     args_schema: Type[BaseModel] = WeatherInfoInput
+    return_direct: bool = False
 
     def _run(self, latitude: float, longitude: float):
         logging.info(f"Fetching weather info for latitude: {latitude}, longitude: {longitude}")

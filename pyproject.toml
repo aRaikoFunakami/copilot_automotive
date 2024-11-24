@@ -7,18 +7,18 @@ license = "MIT"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-pydantic = "<2.0"
+pydantic = "^2.5.2"
 python = "^3.11"
 openai = "^1.16.1"
 flask = "^3.0.2"
-langchain = "^0.1.14"
 langid = "^1.1.6"
-langchain-openai = "^0.1.1"
 selenium = "^4.19.0"
 webdriver-manager = "^4.0.1"
-langchain-community = "^0.0.33"
 ppad = "^0.0.11"
 pure-python-adb = "^0.3.0.dev0"
+langchain-openai = "^0.2.9"
+langchain-community = "^0.3.8"
+langgraph = "^0.2.53"
 
 
 [build-system]

@@ -71,143 +71,6 @@ class YouTubeController:
         else:
             return self.driver.current_url
 
-    def search_videos_automatically_at_youtube(self, input: str) -> str:
-        WebDriverWait(self.driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, '//a[@id="video-title"]'))
-        )
-        try:
-            videos_elements = self.driver.find_elements(By.XPATH, '//a[@id="video-title"]')
-            video_list = {"type": "video_list", "keyword": input, "list": []}
-
-            i = 0
-            limit = 15
-            for video_element in videos_elements:
-                if i < limit:
-                    title = video_element.get_attribute("title")
-                    url = video_element.get_attribute("href")
-                    video_list["list"].append({"title": title, "url": url})
-                    i += 1
-                else:
-                    break
-
-            return json.dumps(video_list, indent=2, ensure_ascii=False)
-        except Exception as e:
-            logging.error(f"Error selecting video link: {e}")
-            return "Failed to get video list."
-
-    def remove_numbers_from_videos(self, driver):
-        script = """
-		var circles = document.querySelectorAll('.video-number-circle');
-		circles.forEach(function(circle) {
-			circle.parentNode.removeChild(circle);
-		});
-		"""
-        driver.execute_script(script)
-
-    """
-	Numbering process for video selection aids
-	"""
-
-    def add_numbers_to_videos_for_youtube(self, driver):
-        try:
-            logging.info("start WebDriverWait")
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@id="thumbnail"]'))
-            )
-            # call javascript directly because taking time for seach id
-            script_add_numbers_template = """
-			var elements = document.querySelectorAll('[id="thumbnail"]');
-			Array.from(elements).forEach(function(el, index) {
-				var x = el.getBoundingClientRect().left + window.scrollX;
-				var y = el.getBoundingClientRect().top + window.scrollY;
-				var isDisplayed = !(el.offsetWidth === 0 && el.offsetHeight === 0);
-				if (isDisplayed) {
-					var circle = document.createElement('div');
-					circle.className = "video-number-circle"; 
-					var text = document.createElement('span');
-					circle.style.zIndex = "9999";
-					circle.style.fontSize = "36px"; 
-					circle.style.width = '60px';
-					circle.style.height = '60px';
-					circle.style.lineHeight = "48px";
-					circle.style.background = 'rgba(0, 128, 0, 0.5)';
-					circle.style.position = 'absolute';
-					circle.style.top = '0' + 'px';
-					circle.style.left = '0' + 'px';
-					circle.style.borderRadius = '50%';
-					circle.style.display = 'flex';
-					circle.style.justifyContent = 'center';
-					circle.style.alignItems = 'center';
-					text.innerHTML = index;
-					text.style.color = 'white';
-					circle.appendChild(text);
-					el.appendChild(circle);
-					console.log(x, y, index);
-				}
-			});
-			"""
-            logging.info("Start executing script to add numbers to video thumbnails.")
-            driver.execute_script(script_add_numbers_template)
-            logging.info("Numbers added to video thumbnails successfully.")
-            if self.lang_id != "ja":
-                response = "Moved to the link."
-            else:
-                response = "リンク先に移動しました"
-            return response
-        except TimeoutException:
-            logging.error("Timed out waiting for input or textarea elements to load.")
-            return "videos are not found"
-
-    def add_numbers_to_videos(self, driver):
-        url = self.get_current_url()
-        logging.info(f"url: {url}")
-        return self.add_numbers_to_videos_for_youtube(driver)
-
-    """
-	Called from function call of langchain
-	url : VOD service to search for
-	input: search string
-	"""
-    def play_video_in_playlist(self, num, lang_id="ja"):
-        logging.info(f"num: {num}, playlist: {self.playlist}")
-        try:
-            self.youtube_autoplay_thread = YouTubeAutoPlay(driver=self.driver, playlist=self.playlist, playnumber=num, overlay=True)
-            self.youtube_autoplay_thread.start()
-            return f"プレイリストの{num}番目の動画{self.playlist['list'][num]['title']}を再生します"
-        except Exception as e:
-            logging.error(f"Error selecting video link: {e}")
-            return f"Failed to play the video"
-
-    def search_videos_automatically_at_youtube(self, input: str) -> str:
-        WebDriverWait(self.driver, 10).until(
-            EC.presence_of_element_located((By.XPATH, '//a[@id="video-title"]'))
-        )
-        try:
-            videos_elements = self.driver.find_elements(
-                By.XPATH, '//a[@id="video-title"]'
-            )
-            video_list = {"type": "video_list", "keyword": input, "list": []}
-
-            i = 0
-            limit = 15
-            for video_element in videos_elements:
-                if i < limit:
-                    title = video_element.get_attribute("title")
-                    url = video_element.get_attribute("href")
-                    video_list["list"].append({"title": title, "url": url})
-                    i += 1
-                else:
-                    break
-
-            self.playlist = video_list
-            logging.info(
-                f"video_list: {json.dumps(self.playlist, indent=2, ensure_ascii=False)}"
-            )
-            return f"検索結果からプレイリストを作成しました。プレイリストを再生しますか？"
-        except Exception as e:
-            logging.error(f"Error selecting video link: {e}")
-            return f"Failed to get video list."
-
     def search_videos(self, input: str, lang_id: str = "ja"):
         """
         Called from function call of Open AI
@@ -223,14 +86,9 @@ class YouTubeController:
         self.current_url = goto_url
         logging.info(f"get({goto_url})")
         self.driver.get(goto_url)
-        time.sleep(1)
-
-        if youtube_playlist == False:
-            return self.add_numbers_to_videos(self.driver)
-        else:
-            self.add_numbers_to_videos(self.driver)
-            return self.search_videos_automatically_at_youtube(input)
-        
+        return f"Video searched on youtube."
+        # after Chrome 131, we cannot use innerHTML directly
+  
 
     """
 	Select the link (video) of the selected number
@@ -241,8 +99,7 @@ class YouTubeController:
         # 画面表示されていないと落ちるので click() を直接呼び出さない
         # videos[num].click()
         #
-        # 表示しているリンク番号を削除
-        self.remove_numbers_from_videos(self.driver)
+
         # 選択したビデオをクリック
         self.driver.execute_script("arguments[0].scrollIntoView();", link)
         self.driver.execute_script("arguments[0].click();", link)
@@ -320,8 +177,6 @@ class YouTubeController:
         """
         url = self.get_current_url()
         logging.info(f"url = {url}")
-        # not support add_numbers
-        self.remove_numbers_from_videos(self.driver)
         return self.youtube_shortcut_key("f")
   
 
@@ -331,8 +186,6 @@ class YouTubeController:
         """
         url = self.get_current_url()
         logging.info(f"url = {url}")
-        # not support add_numbers
-        self.remove_numbers_from_videos(self.driver)
         return self.youtube_shortcut_key(">")
 
     def slow_forward_playback(self) -> str:
@@ -369,7 +222,7 @@ class YouTubeController:
         logging.info(f"url = {url}")
         # return self.youtube_shortcut_key("P", Keys.SHIFT)
         return self.driver.back()
-
+    
     def start(self):
         self.driver.get("https://www.google.com")
 
@@ -409,8 +262,8 @@ if __name__ == "__main__":
     test.set_driver(driver=driver)
     test.start()
     test.search_videos("フリーレン")
-    time.sleep(1)
-    test.select_link_by_number(2)
+    time.sleep(3)
+    test.select_link_by_number(3)
     time.sleep(1)
 
     test.fullscreen()
@@ -442,5 +295,7 @@ if __name__ == "__main__":
     time.sleep(2)
     test.play_previous_video()
     time.sleep(2)
+
+    time.sleep(10)
 
     time.sleep(10)

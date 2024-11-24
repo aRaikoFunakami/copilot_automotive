@@ -14,10 +14,10 @@ class AirControlDeltaInput(BaseModel):
     """)
 
 class AirControlDelta(BaseTool):
-    name = "intent_aircontrol_delta"
-    description = "Adjust the air conditioner's temperature based on sensory temperature information."
+    name: str = "intent_aircontrol_delta"
+    description: str = "Adjust the air conditioner's temperature based on sensory temperature information."
     args_schema: Type[BaseModel] = AirControlDeltaInput
-    return_direct = True
+    return_direct: bool = True
 
     def _run(self, temperature_delta: float):
         logging.info(f"Requested temperature change: {temperature_delta} degrees")
@@ -39,10 +39,10 @@ class AirControlInput(BaseModel):
     """)
 
 class AirControl(BaseTool):
-    name = "intent_aircontrol"
-    description = "Set the air conditioner's temperature to a specific target value."
+    name: str = "intent_aircontrol"
+    description: str = "Set the air conditioner's temperature to a specific target value."
     args_schema: Type[BaseModel] = AirControlInput
-    return_direct = True
+    return_direct: bool = True
 
     def _run(self, temperature: float):
         logging.info(f"Set temperature to: {temperature}°C")

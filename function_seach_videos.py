@@ -23,10 +23,10 @@ class SearchVideosInput(BaseModel):
     )
 
 class SearchVideos(BaseTool):
-    name = "search_videos"
-    description = "Function to search videos on a specified service via a web page."
+    name: str = "search_videos"
+    description: str = "Function to search videos on a specified service via a web page."
     args_schema: Type[BaseModel] = SearchVideosInput
-    return_direct = True  # Indicates that the tool returns output directly without further user interaction
+    return_direct: bool = True  # Indicates that the tool returns output directly without further user interaction
 
     def _run(self, service: str, input: str):
         service = service.lower()

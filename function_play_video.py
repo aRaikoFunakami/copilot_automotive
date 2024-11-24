@@ -18,10 +18,10 @@ class SelectLinkByNumberInput(BaseModel):
     num: int = Field(description="Select the link you want to select by number.")
 
 class SelectLinkByNumber(BaseTool):
-    name = "select_link_by_number"
-    description = "Use this function to select the link by number."
+    name:str = "select_link_by_number"
+    description: str = "Use this function to select the link by number."
     args_schema: Type[BaseModel] = SelectLinkByNumberInput
-    return_direct = True  # Tool returns output directly
+    return_direct: bool = True  # Tool returns output directly
 
     def _run(self, num: int):
         logging.info(f"Selecting link by number: {num}")
