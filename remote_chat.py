@@ -155,7 +155,6 @@ class SimpleConversationRemoteChat:
             model = ChatOpenAI(
                 temperature=0,
                 model=model_name,
-                openai_api_key=config.keys["openai_api_key"],
             )
 
             agent_executor = create_react_agent(
@@ -166,8 +165,14 @@ class SimpleConversationRemoteChat:
 
             thread_config = {"configurable": {"thread_id": "this shall be managed for each connection"}}
             response = agent_executor.invoke({"messages": [HumanMessage(content=user_message)]}, thread_config)
+            print("==============================================")
+            print("==============================================")
+            print("==============================================")
             print(response["messages"][-1].content)
-            return response
+            print("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii")
+            print("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii")
+            print("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii")
+            return response["messages"][-1].content
         finally:
             g.close()
 

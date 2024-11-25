@@ -22,11 +22,15 @@ from controller_youtube import YouTubeController
 #########################################################
 # Config
 #########################################################
-# is_termux = True
+#is_termux = True
 is_termux = False
 
-# is_android_tablet = True
+#is_android_tablet = True
 is_android_tablet = False
+
+# termuxの場合
+# chromedriver のバージョンに合わせたchromiumのバイナリをAndroidにインストールしておく
+# https://github.com/macchrome/droidchrome/tags
 #########################################################
 
 
@@ -63,6 +67,9 @@ class ChromeController:
             self.driver = webdriver.Chrome(options=options)
         else:
             # For Termux, the service parameter is not needed as Termux has a specific way of handling drivers
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-dev-shm-usage")
+            options.add_experimental_option("androidPackage", "org.chromium.chrome.stable") 
             self.driver = webdriver.Chrome(options=options)
 
         self.youtube_controller = YouTubeController().get_instance()

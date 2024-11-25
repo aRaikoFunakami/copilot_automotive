@@ -125,7 +125,6 @@ if __name__ == "__main__":
     server_thread = threading.Thread(target=run_server, daemon=True)
     server_thread.start()
 
-    openai.api_key = config.keys["openai_api_key"]
     remote_chat = SimpleConversationRemoteChat(history=None)
 
     # debug
