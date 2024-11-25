@@ -57,8 +57,8 @@ class ChromeController:
             options.add_argument(
                 "--user-agent=Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36"
             )
-            options.add_experimental_option("androidPackage", "com.android.chrome")
-
+            #options.add_experimental_option("androidPackage", "com.android.chrome")
+            options.add_experimental_option("androidPackage", "org.chromium.chrome.stable") 
         # Only attempt to install and use the ChromeDriverManager if not running on Termux
         # Ensure correct handling of the service parameter
         if not is_termux:
@@ -68,9 +68,9 @@ class ChromeController:
         else:
             # For Termux, the service parameter is not needed as Termux has a specific way of handling drivers
             options.add_argument("--no-sandbox")
-            options.add_argument("--disable-dev-shm-usage")
-            options.add_experimental_option("androidPackage", "org.chromium.chrome.stable") 
-            self.driver = webdriver.Chrome(options=options)
+            options.add_argument("--disable-dev-shm-usage") 
+            service = Service("/data/data/com.termux/files/usr/bin/chromedriver")
+            self.driver = webdriver.Chrome(service=service, options=options)
 
         self.youtube_controller = YouTubeController().get_instance()
         self.youtube_controller.set_driver(self.driver)
