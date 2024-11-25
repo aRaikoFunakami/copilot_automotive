@@ -91,7 +91,7 @@ class ChromeController:
                 'error' : "Unsupported video service"
             }
             logging.error(response)
-            return json.dumps(response, ensure_ascii=False)
+            return json.dumps(response, indent=4, ensure_ascii=False)
 
 
 if __name__ == "__main__":

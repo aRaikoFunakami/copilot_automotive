@@ -70,7 +70,7 @@ def input_text():
         return jsonify({"error": "Request must be JSON"}), 400
     
     # JSON形式でLLMに入力する
-    input_json_string = json.dumps(data, indent=2, ensure_ascii=False)
+    input_json_string = json.dumps(data, indent=4, ensure_ascii=False)
     logging.info(f"input_json_string: {input_json_string}")
 
     global remote_chat
