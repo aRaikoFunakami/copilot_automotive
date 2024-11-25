@@ -15,7 +15,7 @@ from flask import Flask, render_template, request, jsonify
 from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
 
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import MemorySaver
@@ -65,15 +65,15 @@ class ChainStreamHandler(StreamingStdOutCallbackHandler):
 
 class SimpleConversationRemoteChat:
     tools = [
-        # Get the latest informaion : export TAVILY_API_KEY="tvly-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-        TavilySearchResults(max_results=2), 
         # Get current weather from latitude and longitude information  
-        function_weather.WeatherInfo(),     
+        # function_weather.WeatherInfo(), covered by TavilySearchResults    
         function_launch_navigation.LaunchNavigation(),
         function_aircontrol.AirControl(),
         function_aircontrol.AirControlDelta(),
         function_seach_videos.SearchVideos(),
-        function_play_video.SelectLinkByNumber(), #Play Video by Number       
+        function_play_video.SelectLinkByNumber(), #Play Video by Number 
+        # Get the latest informaion : export TAVILY_API_KEY="tvly-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        TavilySearchResults(max_results=2, include_images=False, include_raw_content=False, search_depth="advanced"),       
     ]
     prompt_init = '''
     # Role
@@ -83,6 +83,7 @@ class SimpleConversationRemoteChat:
     - Car Navigation
     - Air Conditioner Control
     - Weather Forecasts
+    - Interneet seach by TavilySearchResults
     - Car Information Monitoring
 
     # Car Information
@@ -128,7 +129,22 @@ class SimpleConversationRemoteChat:
 
     def __init__(self, history):
         self.chromeController = ChromeController.get_instance()
+        # ChatModel
         self.memory = MemorySaver()
+        self.model = ChatOpenAI(
+            temperature=0,
+            model=model_name,
+        )
+        self.agent_executor = create_react_agent(
+            model=self.model,
+            tools=self.tools,
+            checkpointer=self.memory,
+        )
+        # Model for speech
+        self.model_speech = ChatOpenAI(
+            temperature=0.3,
+            model=model_name,
+        )
     
     def __del__(self):
         self.quit()
@@ -152,27 +168,35 @@ class SimpleConversationRemoteChat:
             logging.debug(f"memory: {self.memory}")
             logging.info(f"lang_id: {lang_id}")
 
-            model = ChatOpenAI(
-                temperature=0,
-                model=model_name,
-            )
-
-            agent_executor = create_react_agent(
-                model=model,
-                tools=self.tools,
-                checkpointer=self.memory,
-            )
-
+            # set thread_id for each thread for MemorySaver
             thread_config = {"configurable": {"thread_id": "this shall be managed for each connection"}}
-            response = agent_executor.invoke({"messages": [HumanMessage(content=user_message)]}, thread_config)
-            print("==============================================")
-            print("==============================================")
-            print("==============================================")
-            print(response["messages"][-1].content)
-            print("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii")
-            print("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii")
-            print("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii")
-            return response["messages"][-1].content
+            response = self.agent_executor.invoke({"messages": [HumanMessage(content=user_message)]}, thread_config)
+            content = response["messages"][-1].content
+            logging.info(f"===content===content===content===content===content===content===")
+            logging.info(f"content: {content}")
+            logging.info(f"===content===content===content===content===content===content===")
+
+            # 返り値が文字列の場合、JSONかどうかをチェック
+            if isinstance(content, str):
+                try:
+                    # agentの回答がJSON形式の場合には何もしない
+                    json.loads(content)                
+                except json.JSONDecodeError:
+                    # agentの回答が通常の文字列の場合には機械で読み上げるためのテキストに変換
+                    messages = [
+                        SystemMessage(content="""Transform the following text into a format suitable for machine reading. Ensure the text is concise, clear, and uses appropriate punctuation for natural reading. Remove unnecessary references, links, or metadata that are not essential for understanding. Simplify abbreviations, symbols, or terms like "km" or "%" by converting them into their full forms. If the text includes bullet points or lists, adjust the structure to create a natural flow for reading aloud. Ensure the output is optimized for natural-sounding speech."""),
+                        HumanMessage(content=response["messages"][-1].content),
+                    ]
+                    message = self.model_speech.invoke(messages)
+                    content = message.content
+                    logging.info(f"===content_for_speech===content_for_speech===content_for_speech===")
+                    logging.info(f"content for speach: {content}")
+                    logging.info(f"===content_for_speech===content_for_speech===content_for_speech===")
+            else:
+                # 返り値が文字列でない場合の処理
+                logging.exception("content is not string")
+
+            return content
         finally:
             g.close()
 
