@@ -65,17 +65,22 @@ class ChainStreamHandler(StreamingStdOutCallbackHandler):
 
 class SimpleConversationRemoteChat:
     tools = [
-        # Get current weather from latitude and longitude information  
-        # function_weather.WeatherInfo(), covered by TavilySearchResults    
+        # Get current weather from latitude and longitude information
+        # function_weather.WeatherInfo(), covered by TavilySearchResults
         function_launch_navigation.LaunchNavigation(),
         function_aircontrol.AirControl(),
         function_aircontrol.AirControlDelta(),
         function_seach_videos.SearchVideos(),
-        function_play_video.SelectLinkByNumber(), #Play Video by Number 
+        function_play_video.SelectLinkByNumber(),  # Play Video by Number
         # Get the latest informaion : export TAVILY_API_KEY="tvly-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-        TavilySearchResults(max_results=2, include_images=False, include_raw_content=False, search_depth="advanced"),       
+        TavilySearchResults(
+            max_results=2,
+            include_images=False,
+            include_raw_content=False,
+            search_depth="advanced",
+        ),
     ]
-    prompt_init = '''
+    prompt_init = """
     # Role
     You are "NetFront Copilot," an assistant dedicated to operating the In-Vehicle Infotainment (IVI) system in automobiles. You engage in conversations with drivers, respond to their commands, and control the IVI system functionalities through function calls. Your primary goal is to assist drivers in a friendly and efficient manner. If you encounter unknown queries, you should ask clear questions to gather the necessary information from the driver.
 
@@ -125,7 +130,7 @@ class SimpleConversationRemoteChat:
     - `gps_coordinates`: Current GPS coordinates of the vehicle, formatted as latitude and longitude.
     
     - `user_input`: Direct instructions or queries from the driver, provided as a string. This might include requests for navigation directions, climate control adjustments, or general queries about the vehicle or driving conditions.
-    '''
+    """
 
     def __init__(self, history):
         self.chromeController = ChromeController.get_instance()
@@ -145,7 +150,7 @@ class SimpleConversationRemoteChat:
             temperature=0.3,
             model=model_name,
         )
-    
+
     def __del__(self):
         self.quit()
 
@@ -169,29 +174,45 @@ class SimpleConversationRemoteChat:
             logging.info(f"lang_id: {lang_id}")
 
             # set thread_id for each thread for MemorySaver
-            thread_config = {"configurable": {"thread_id": "this shall be managed for each connection"}}
-            response = self.agent_executor.invoke({"messages": [HumanMessage(content=user_message)]}, thread_config)
+            thread_config = {
+                "configurable": {
+                    "thread_id": "this shall be managed for each connection"
+                }
+            }
+            response = self.agent_executor.invoke(
+                {"messages": [HumanMessage(content=user_message)]}, thread_config
+            )
             content = response["messages"][-1].content
-            logging.info(f"===content===content===content===content===content===content===")
+            logging.info(
+                f"===content===content===content===content===content===content==="
+            )
             logging.info(f"content: {content}")
-            logging.info(f"===content===content===content===content===content===content===")
+            logging.info(
+                f"===content===content===content===content===content===content==="
+            )
 
             # 返り値が文字列の場合、JSONかどうかをチェック
             if isinstance(content, str):
                 try:
                     # agentの回答がJSON形式の場合には何もしない
-                    json.loads(content)                
+                    json.loads(content)
                 except json.JSONDecodeError:
                     # agentの回答が通常の文字列の場合には機械で読み上げるためのテキストに変換
                     messages = [
-                        SystemMessage(content="""Transform the following text into a format suitable for machine reading. Ensure the text is concise, clear, and uses appropriate punctuation for natural reading. Remove unnecessary references, links, or metadata that are not essential for understanding. Simplify abbreviations, symbols, or terms like "km" or "%" by converting them into their full forms. If the text includes bullet points or lists, adjust the structure to create a natural flow for reading aloud. Ensure the output is optimized for natural-sounding speech."""),
+                        SystemMessage(
+                            content="""Transform the following text into a format suitable for machine reading. Ensure the text is concise, clear, and uses appropriate punctuation for natural reading. Remove unnecessary references, links, or metadata that are not essential for understanding. Simplify abbreviations, symbols, or terms like "km" or "%" by converting them into their full forms. If the text includes bullet points or lists, adjust the structure to create a natural flow for reading aloud. Ensure the output is optimized for natural-sounding speech."""
+                        ),
                         HumanMessage(content=response["messages"][-1].content),
                     ]
                     message = self.model_speech.invoke(messages)
                     content = message.content
-                    logging.info(f"===content_for_speech===content_for_speech===content_for_speech===")
+                    logging.info(
+                        f"===content_for_speech===content_for_speech===content_for_speech==="
+                    )
                     logging.info(f"content for speach: {content}")
-                    logging.info(f"===content_for_speech===content_for_speech===content_for_speech===")
+                    logging.info(
+                        f"===content_for_speech===content_for_speech===content_for_speech==="
+                    )
             else:
                 # 返り値が文字列でない場合の処理
                 logging.exception("content is not string")
@@ -207,16 +228,16 @@ class SimpleConversationRemoteChat:
 
 
 test_user_input = {
-  "car_info": {
-      "vehicle_speed": "300",
-      "vehicle_speed_description": "Indicates the current speed of the vehicle. Unit is km. 60 means 60 km.",
-      "fuel_level": "12",
-      "fuel_level_description": "Fuel level in %, where 75 means 75%.",
-      "language": "ja"
-  },
-  "today": datetime.date.today().strftime('%Y-%m-%d'),
-  "current_time": datetime.datetime.now().strftime('%H:%M:%S'),
-  "user_input": "横浜の観光の名所は？あと富士山の高さは？そして今日の横浜の天気は"
+    "car_info": {
+        "vehicle_speed": "300",
+        "vehicle_speed_description": "Indicates the current speed of the vehicle. Unit is km. 60 means 60 km.",
+        "fuel_level": "12",
+        "fuel_level_description": "Fuel level in %, where 75 means 75%.",
+        "language": "ja",
+    },
+    "today": datetime.date.today().strftime("%Y-%m-%d"),
+    "current_time": datetime.datetime.now().strftime("%H:%M:%S"),
+    "user_input": "横浜の観光の名所は？あと富士山の高さは？そして今日の横浜の天気は",
 }
 
 
@@ -232,7 +253,7 @@ auto_test_queries = [
     "横浜の観光名所は？",
     "山下公園の緯度と軽度は？",
     "山下公園までのルートを教えて",
-    "フリーレンの動画を検索して", 
+    "フリーレンの動画を検索して",
 ]
 
 if __name__ == "__main__":
@@ -252,7 +273,7 @@ if __name__ == "__main__":
                 chat.llm_run(json.dumps(test_user_input, ensure_ascii=False))
             time.sleep(10)
             return
-        
+
         # manual test
         while True:
             user_input = input("Enter the text to search (or 'exit' to quit): ")
@@ -260,8 +281,7 @@ if __name__ == "__main__":
                 break
             test_user_input["user_input"] = user_input
             chat.llm_run(json.dumps(test_user_input, ensure_ascii=False))
-        #return chat.llm_run(test_user_input)
-
+        # return chat.llm_run(test_user_input)
 
     # Run the chat in the main thread
     chat()
