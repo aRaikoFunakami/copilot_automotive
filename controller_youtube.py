@@ -19,8 +19,9 @@ from controller_youtube_adskip import YouTubeAdskip
 #########################################################
 # Config
 #########################################################
-youtube_playlist = True
-# youtube_playlist = False
+# youtube_playlist = True
+youtube_playlist = False
+is_youtube_adskip = False
 ########################################################
 
 # Sigleton
@@ -45,17 +46,19 @@ class YouTubeController:
     def set_driver(self, driver):
         if self.driver is None:
             self.driver = driver
-            self.youtube_adskip_thread = YouTubeAdskip(driver=self.driver)
-            self.youtube_adskip_thread.start()
+            if is_youtube_adskip == True:
+                self.youtube_adskip_thread = YouTubeAdskip(driver=self.driver)
+                self.youtube_adskip_thread.start()
 
     @classmethod
     def get_instance(cls):
         return cls._instance if cls._instance else cls()
 
     def __del__(self):
-        if self.youtube_adskip_thread is not None:
-            logging.info(f"YouTube_Adskip: {self.youtube_adskip_thread}")
-            self.youtube_adskip_thread.cancel()
+        if is_youtube_adskip == True:
+            if self.youtube_adskip_thread is not None:
+                logging.info(f"YouTube_Adskip: {self.youtube_adskip_thread}")
+                self.youtube_adskip_thread.cancel()
         if self.youtube_autoplay_thread is not None:
             self.youtube_autoplay_thread.cancel()
         if self.driver:
