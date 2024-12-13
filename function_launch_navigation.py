@@ -20,6 +20,7 @@ class LaunchNavigation(BaseTool):
         try:
             # ここで外部のナビゲーションサービスへのリクエストを想定
             response = {
+                'type': "tools.launchnavigation",
                 'intent' : {
                     'navigation' : {
                         'navi_application' : "googlemap",
@@ -38,8 +39,32 @@ class LaunchNavigation(BaseTool):
             logging.error(response)
             return json.dumps(response, indent=4, ensure_ascii=False)
 
-    def _arun(self, ticker: str):
-        raise NotImplementedError("Asynchronous execution is not supported.")
+    async def _arun(self, latitude: float, longitude: float):
+        logging.info(f"lat, lon = {latitude}, {longitude}")
+        try:
+            # ここで外部のナビゲーションサービスへのリクエストを想定
+            response = {
+                'type': 'tools.launchnavigation',
+                'return_direct' : True,
+                'intent' : {
+                    'navigation' : {
+                        'navi_application' : "googlemap",
+                        'latitude' : latitude,
+                        'longitude' : longitude,
+                    },
+                },
+            }
+            logging.info(f"response: {response}")
+            return response
+        except Exception as e:
+            response = {
+                "error",
+                "Failed to provide navigation due to an error: {0}".format(str(e))
+            }
+            logging.error(response)
+            return response
+
+        
 
 # モジュールの適切な使用を確保
 if __name__ == "__main__":

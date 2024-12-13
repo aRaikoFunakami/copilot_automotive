@@ -83,8 +83,19 @@ class WeatherInfo(BaseTool):
             logging.error(response)
             return json.dumps(response, indent=4, ensure_ascii=False)
 
-    def _arun(self, ticker: str):
-        raise NotImplementedError("Asynchronous execution is not supported.")
+    def _arun(self, latitude: float, longitude: float):
+        logging.info(f"Fetching weather info for latitude: {latitude}, longitude: {longitude}")
+        try:
+            weather_data = get_weather_info(latitude, longitude)
+            logging.info("Weather data retrieved successfully.")
+            return weather_data
+        except Exception as e:
+            response = {
+                'error' : f"Failed to fetch weather data: {str(e)}"
+            }
+            logging.error(response)
+            return json.dumps(response, indent=4, ensure_ascii=False)      
+        #raise NotImplementedError("Asynchronous execution is not supported.")
 
 
 if __name__ == "__main__":

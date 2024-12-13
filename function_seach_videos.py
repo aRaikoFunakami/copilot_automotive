@@ -56,8 +56,36 @@ class SearchVideos(BaseTool):
             logging.error(response)
             return json.dumps(response, indent=4, ensure_ascii=False)
 
-    def _arun(self, ticker: str):
-        raise NotImplementedError("Asynchronous execution is not supported.")
+    async def _arun(elf, service: str, input: str):
+        service = service.lower()
+        logging.info(f"Service = {service}, Input = {input}")
+        try:
+            # DEMO code
+            chrome_controller = ChromeController.get_instance()
+            import remote_chat
+            response = chrome_controller.search_videos(service=service, input=input, lang_id=remote_chat.lang_id)  # Example fixed lang_id
+            # example 
+            response = {
+                'type' : 'tools.searchvideos',
+                'return_direct' : True,
+                'intent' : {
+                    'webbrowser' : {
+                        'search_videos': {
+                            'service' : service,
+                            'input' : input,
+                        },
+                    },
+                },
+            }
+            logging.info(f"response: {response}")
+            return response
+        except Exception as e:
+            response = {
+                'error' : f"Error in searching videos: {str(e)}"
+            }
+            logging.error(response)
+            return json.dumps(response, indent=4, ensure_ascii=False)
+        #raise NotImplementedError("Asynchronous execution is not supported.")
 
 # Ensure proper module usage
 if __name__ == "__main__":

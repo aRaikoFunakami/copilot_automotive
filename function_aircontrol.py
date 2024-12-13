@@ -27,8 +27,16 @@ class AirControlDelta(BaseTool):
         logging.info(f"Response: {response}")
         return json.dumps(response, indent=4, ensure_ascii=False)
 
-    def _arun(self, ticker: str):
-        raise NotImplementedError("Asynchronous execution is not supported.")
+    async def _arun(self, temperature_delta: float):
+        logging.info(f"Requested temperature change: {temperature_delta} degrees")
+        response = {
+            'type' : 'tools.aircontroldelta',
+            'return_direct' : True,
+            'intent': {'aircontrol_delta': {'temperature_delta': temperature_delta}}
+        }
+        logging.info(f"Response: {response}")
+        return response
+        #raise NotImplementedError("Asynchronous execution is not supported.")
 
 # 絶対温度設定のための入力スキーマ
 class AirControlInput(BaseModel):
@@ -52,8 +60,16 @@ class AirControl(BaseTool):
         logging.info(f"Response: {response}")
         return json.dumps(response, indent=4, ensure_ascii=False)
 
-    def _arun(self, ticker: str):
-        raise NotImplementedError("Asynchronous execution is not supported.")
+    async def _arun(self, temperature: float):
+        logging.info(f"Set temperature to: {temperature}°C")
+        response = {
+            'type' : 'tools.aircontrol',
+            'return_direct' : True,
+            'intent': {'aircontrol': {'temperature': temperature}}
+        }
+        logging.info(f"Response: {response}")
+        return response
+        #raise NotImplementedError("Asynchronous execution is not supported.")
 
 # Ensure proper module usage
 if __name__ == "__main__":

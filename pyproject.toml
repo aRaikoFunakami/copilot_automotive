@@ -19,6 +19,10 @@ pure-python-adb = "^0.3.0.dev0"
 langchain-openai = "^0.2.9"
 langchain-community = "^0.3.8"
 langgraph = "^0.2.53"
+starlette = "^0.41.3"
+serverutils = "^4.2.1"
+uvicorn = "^0.32.1"
+websockets = "^13.1"
 
 
 [build-system]
