@@ -1,19 +1,13 @@
-"""
-The implementation is made using Selenium for demonstration purposes. 
-Normally, Selenium is not used to control the browser, but sends JSON 
-commands to the client to control the browser, and the client 
-communicates with the browser to control the browser.
-"""
-
 import json
 import logging
 from typing import Any, Type
 from pydantic import BaseModel, Field
+import asyncio
 
 from langchain.tools import BaseTool
 from controller_chrome import ChromeController
 
-# Define the input schema using Pydantic for type validation and settings
+
 class SearchVideosInput(BaseModel):
     service: str = Field(
         description='Name of video website for video search. Currently, only "youtube" is supported.'
@@ -22,70 +16,65 @@ class SearchVideosInput(BaseModel):
         description="Search string for searching videos."
     )
 
+
 class SearchVideos(BaseTool):
     name: str = "search_videos"
     description: str = "Function to search videos on a specified service via a web page."
     args_schema: Type[BaseModel] = SearchVideosInput
-    return_direct: bool = True  # Indicates that the tool returns output directly without further user interaction
+    return_direct: bool = True
 
-    def _run(self, service: str, input: str):
-        service = service.lower()
-        logging.info(f"Service = {service}, Input = {input}")
-        try:
-            # DEMO code
-            chrome_controller = ChromeController.get_instance()
-            import remote_chat
-            response = chrome_controller.search_videos(service=service, input=input, lang_id=remote_chat.lang_id)  # Example fixed lang_id
-            # example
-            response = {
-                'intent' : {
-                    'webbrowser' : {
-                        'search_videos': {
-                            'service' : service,
-                            'input' : input,
-                        },
+    def _generate_response(self, service: str, input: str) -> dict:
+        """Generate a standardized response for video search."""
+        return {
+            'type': 'tools.search_videos',
+            'return_direct': True,
+            'intent': {
+                'webbrowser': {
+                    'search_videos': {
+                        'service': service,
+                        'input': input,
                     },
                 },
-            }
-            logging.info(f"response: {response}")
-            return json.dumps(response, indent=4, ensure_ascii=False)
-        except Exception as e:
-            response = {
-                'error' : f"Error in searching videos: {str(e)}"
-            }
-            logging.error(response)
-            return json.dumps(response, indent=4, ensure_ascii=False)
+            },
+        }
 
-    async def _arun(elf, service: str, input: str):
-        service = service.lower()
-        logging.info(f"Service = {service}, Input = {input}")
+    def _handle_error(self, error: Exception) -> dict:
+        """Handle errors and return a consistent error response."""
+        error_message = f"Error in searching videos: {str(error)}"
+        logging.error(error_message)
+        return {
+            "error": error_message
+        }
+
+    async def _arun(self, service: str, input: str):
+        """Asynchronous video search."""
         try:
-            # DEMO code
+            service = service.lower()
+            logging.info(f"Service = {service}, Input = {input}")
+
+            # DEMO code - Example interaction with ChromeController
             chrome_controller = ChromeController.get_instance()
             import remote_chat
-            response = chrome_controller.search_videos(service=service, input=input, lang_id=remote_chat.lang_id)  # Example fixed lang_id
-            # example 
-            response = {
-                'type' : 'tools.searchvideos',
-                'return_direct' : True,
-                'intent' : {
-                    'webbrowser' : {
-                        'search_videos': {
-                            'service' : service,
-                            'input' : input,
-                        },
-                    },
-                },
-            }
-            logging.info(f"response: {response}")
+            lang_id = getattr(remote_chat, "lang_id", "en")  # Default to 'en' if lang_id is unavailable
+            chrome_controller.search_videos(service=service, input=input, lang_id=lang_id)
+
+            response = self._generate_response(service, input)
+            logging.info(f"Response: {response}")
             return response
         except Exception as e:
-            response = {
-                'error' : f"Error in searching videos: {str(e)}"
-            }
-            logging.error(response)
-            return json.dumps(response, indent=4, ensure_ascii=False)
-        #raise NotImplementedError("Asynchronous execution is not supported.")
+            return self._handle_error(e)
+
+    def _run(self, service: str, input: str):
+        """Synchronous wrapper around async logic."""
+        try:
+            return json.dumps(
+                asyncio.run(self._arun(service, input)),
+                indent=4,
+                ensure_ascii=False
+            )
+        except Exception as e:
+            return json.dumps(self._handle_error(e), indent=4, ensure_ascii=False)
+
 
 # Ensure proper module usage
 if __name__ == "__main__":
