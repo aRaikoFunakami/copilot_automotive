@@ -240,6 +240,10 @@ class OpenAIVoiceReactAgent(BaseModel):
                     continue
 
                 if stream_key == "input_mic":
+                    t = data["type"]
+                    if t == "conversation.item.create":
+                        print("conversation item create: ", data)
+                        await model_send(data)
                     await model_send(data)
                 elif stream_key == "tool_outputs":
                     print("tool output", data)
