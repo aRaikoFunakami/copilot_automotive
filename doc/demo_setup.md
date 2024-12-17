@@ -6,20 +6,23 @@ OpenAI の Realtime API を利用しています。クライアントアプリ�
 
 デモ終了時にアプリやサービスを終了させないと思わぬ課金が発生してしまう可能性があるので注意が必要です。
 
+## **!!! サーバーが動作しない場合 !!!**
+
+サーバーを再起動してください
+
 ## 必要なアプリの確認
 
 ### Chromium
+
 [Android向けの最新のChromiumパッケージ](https://github.com/macchrome/droidchrome/tags)をダウンロードしてインストールする。
 
-```
+```terminal:host
 adb install <package>.apk
 ```
-
 
 ## デモ実施前の確認
 
 デモに不具合が発生した場合はこの処理から再確認すること。
-
 
 ホストPCからAndroid機器で動作するtermuxにsshでログインする
 
@@ -76,7 +79,7 @@ poetry run python realtime_app.py
 
 次の出力が終了するまで待つ
 
-```
+```terminal: termux
 INFO:     Started server process [27945]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
@@ -117,21 +120,19 @@ Androidのアプリ選択画面で `AIClient` アプリを起動する
 
 ![icon](/doc/img/main.png)
 
-
 ## デモ開始
 
 `START SERVICE` ボタンを押す
 
 ![icon](/doc/img/start.png)
 
-
 ## デモ終了
 
 ### クライアント側をSTOP
+
 `STOP SERVICE` ボタンを押す
 
 ![icon](/doc/img/stop.png)
-
 
 ### サーバー側をSTOP
 
