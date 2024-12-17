@@ -35,6 +35,11 @@ GASは、AAOSにおけるGoogleのサービスパッケージ。これは、Goog
 1. Android機器とホストPC
 2. Android機器のみ
 
+# デモの設定方法とデモシナリオ
+
+- [デモの設定方法](/doc/demo_setup.md)
+- [デモシナリオ](/doc/demo_scenario.md)
+
 ## 1. Android機器とホストPCの組み合わせでのデモ環境
 
 開発中に利用している環境だ。
