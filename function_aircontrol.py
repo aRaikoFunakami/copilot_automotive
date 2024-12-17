@@ -47,6 +47,7 @@ class AirControlBase(BaseTool):
 class AirControlDeltaInput(BaseModel):
     temperature_delta: float = Field(
         description="""
+        **The interior temperature can only be set between 18°C and 30°C.**
         Specify the temperature to be raised or lowered relative to the current temperature setting. 
         Adjust the temperature in 0.5 degree increments. 
         For example, decrease by 3 degrees if it's too hot, or increase by 1 degree if it's slightly cold.
@@ -77,8 +78,8 @@ class AirControlDelta(AirControlBase):
 class AirControlInput(BaseModel):
     temperature: float = Field(
         description="""
+        **The interior temperature can only be set between 18°C and 30°C.**
         Set the temperature in absolute values.
-        For example, it accepts an instruction to set the temperature to 27°C.
         Set the temperature in 0.5° increments. For example, specify 10°, 10.5° and 11°.
     """
     )

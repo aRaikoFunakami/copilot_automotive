@@ -5,8 +5,7 @@ from langchain_community.tools import TavilySearchResults
 #import function_weather
 import function_launch_navigation
 import function_aircontrol
-import function_seach_videos
-from controller_chrome import ChromeController
+import realtime_function_seach_videos
 
 
 tavily_tool = TavilySearchResults(
@@ -23,5 +22,5 @@ TOOLS = [
             function_aircontrol.AirControl(),
             function_aircontrol.AirControlDelta(),
             function_launch_navigation.LaunchNavigation(),
-            function_seach_videos.SearchVideos(),
+            realtime_function_seach_videos.SearchVideos(),
         ]
