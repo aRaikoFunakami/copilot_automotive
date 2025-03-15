@@ -60,12 +60,10 @@ async def connect(*, api_key: str, model: str, url: str) -> AsyncGenerator[
 
         async def send_event(event: dict[str, Any] | str) -> None:
             formatted_event = json.dumps(event) if isinstance(event, dict) else event
-            #print("send_event", formatted_event)
             await websocket.send(formatted_event)
 
         async def event_stream() -> AsyncIterator[dict[str, Any]]:
             async for raw_event in websocket:
-                #print("raw_event", raw_event)
                 yield json.loads(raw_event)
 
         stream: AsyncIterator[dict[str, Any]] = event_stream()
@@ -84,12 +82,16 @@ class VoiceToolExecutor(BaseModel):
     _trigger_future: asyncio.Future = PrivateAttr(default_factory=asyncio.Future)
     _lock: asyncio.Lock = PrivateAttr(default_factory=asyncio.Lock)
 
-    async def _trigger_func(self) -> dict:  # returns a tool call
+    async def _trigger_func(self) -> dict:
+        """
+        Wait until set_result() is called, then return tool_call.
+        """
         return await self._trigger_future
 
     async def add_tool_call(self, tool_call: dict) -> None:
-        # lock to avoid simultaneous tool calls racing and missing
-        # _trigger_future being
+        """
+        The tool is executed triggered by the function_call_arguments.done event received from the model side.
+        """
         async with self._lock:
             if self._trigger_future.done():
                 # TODO: handle simultaneous tool calls better
@@ -97,10 +99,12 @@ class VoiceToolExecutor(BaseModel):
 
             self._trigger_future.set_result(tool_call)
 
-    async def _create_tool_call_task(self, tool_call: dict) -> asyncio.Task[dict]:
+    async def _create_tool_call_task(self, tool_call: dict) -> asyncio.Task:
+        """
+        実際にツールを呼び出すためのタスクを作成し、結果をまとめて返す。
+        """
         tool = self.tools_by_name.get(tool_call["name"])
         if tool is None:
-            # immediately yield error, do not add task
             raise ValueError(
                 f"tool {tool_call['name']} not found. "
                 f"Must be one of {list(self.tools_by_name.keys())}"
@@ -134,14 +138,19 @@ class VoiceToolExecutor(BaseModel):
         task = asyncio.create_task(run_tool())
         return task
 
-    async def output_iterator(self) -> AsyncIterator[dict]:  # yield events
+    async def output_iterator(self) -> AsyncIterator[dict]:
+        """
+        Stream of tool execution results
+        """
         trigger_task = asyncio.create_task(self._trigger_func())
         tasks = set([trigger_task])
+
         while True:
             done, _ = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
             for task in done:
                 tasks.remove(task)
                 if task == trigger_task:
+                    # Regenerate Future for the next trigger.
                     async with self._lock:
                         self._trigger_future = asyncio.Future()
                     trigger_task = asyncio.create_task(self._trigger_func())
@@ -161,11 +170,17 @@ class VoiceToolExecutor(BaseModel):
                             },
                         }
                 else:
+                    # Return the results of the tool execution as it is.
                     yield task.result()
 
 
 @beta()
 class OpenAIVoiceReactAgent(BaseModel):
+    """
+    Voice+Tools-enabled agents using the OpenAI Realtime API.
+    Further functionality added to support text input.
+    """
+
     model: str
     api_key: SecretStr = Field(
         alias="openai_api_key",
@@ -193,7 +208,7 @@ class OpenAIVoiceReactAgent(BaseModel):
         #     tool if isinstance(tool, BaseTool) else tool_converter.wr(tool)  # type: ignore
         #     for tool in self.tools or []
         # ]
-        tools_by_name = {tool.name: tool for tool in self.tools}
+        tools_by_name = {tool.name: tool for tool in self.tools or []}
         tool_executor = VoiceToolExecutor(tools_by_name=tools_by_name)
 
         async with connect(
@@ -219,75 +234,125 @@ class OpenAIVoiceReactAgent(BaseModel):
                         "instructions": self.instructions,
                         "input_audio_transcription": {
                             "model": "whisper-1",
-                            #"language": "ja",
-                            #"language": "en",
                         },
                         "tools": tool_defs,
                     },
                 }
             )
+
+            # amerge to bring together 3 streams.
+            # 1. input_mic=input_stream (voice or text)
+            # 2. output_speaker=model_receive_stream (response from OpenAI)
+            # 3. tool_outputs=tool_executor.output_iterator() (results of tool execution)
             async for stream_key, data_raw in amerge(
                 input_mic=input_stream,
                 output_speaker=model_receive_stream,
                 tool_outputs=tool_executor.output_iterator(),
             ):
+                # First attempt JSON decoding. If unsuccessful, process as ‘raw text input’.
                 try:
                     data = (
                         json.loads(data_raw) if isinstance(data_raw, str) else data_raw
                     )
                 except json.JSONDecodeError:
-                    print("error decoding data:", data_raw)
-                    continue
+                    # Interpreted as text input
+                    print("Received raw text input:", data_raw)
+                    data = {
+                        "type": "conversation.item.create",
+                        "item": {
+                            "id": "text_input",
+                            "type": "message",
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "input_text",
+                                    "text": data_raw
+                                }
+                            ],
+                        },
+                    }
+                    stream_key = "text"
 
                 if stream_key == "input_mic":
+                    # Audio/JSON events are transferred directly to the model.
                     t = data["type"]
                     if t == "conversation.item.create":
                         print("conversation item create: ", data)
-                        await model_send(data)
                     await model_send(data)
+
+                elif stream_key == "text":
+                    # Raw text input is sent to the model side.
+                    print("Received text input => sending to model:", data)
+                    await model_send(data)
+                    await asyncio.sleep(0.1)
+
+                    # Send ‘response.create’ to generate a text response
+                    event = {
+                        "type": "response.create",
+                        "response": {
+                            "modalities": ["text"],
+                            "instructions": "Please respond concisely."
+                        }
+                    }
+                    print("Sending response.create for text input:", event)
+                    await model_send(event)
+
                 elif stream_key == "tool_outputs":
-                    print("tool output", data)
-                    # return_direct == True の場合にはそのアウトプットをクライアントにも直接返す
-                    t = data["type"] 
-                    output = data["item"]["output"]
-                    if t == "conversation.item.create" and isinstance(output, str):
-                        # json.loads because output is string        
-                        output_json = json.loads(output)
-                        if isinstance(output_json, dict):
-                            return_direct = output_json.get("return_direct", False)
-                            tool_type = output_json["type"]
-                            if return_direct == True:
-                                print("tool type: ", tool_type)
-                                print("tool output: ", output)
-                                await send_output_chunk(output)
+                    # Returns the results of the tool execution to both model + client
+                    print("tool output:", data)
                     await model_send(data)
                     await model_send({"type": "response.create", "response": {}})
-                elif stream_key == "output_speaker":
 
+                    # If the output from the tool contains ‘return_direct’: true,
+                    # If the output from the tool contains ‘return_direct’: True, it can be displayed to the client as it is, etc.
+                    t = data["type"]
+                    if t == "conversation.item.create":
+                        output_str = data["item"].get("output", "")
+                        try:
+                            output_json = json.loads(output_str)
+                            if isinstance(output_json, dict):
+                                return_direct = output_json.get("return_direct", False)
+                                if return_direct:
+                                    await send_output_chunk(output_str)
+                        except Exception:
+                            pass
+
+                elif stream_key == "output_speaker":
+                    # Process response from OpenAI
                     t = data["type"]
                     if t == "response.audio.delta":
+                        # Send audio stream to the client
                         await send_output_chunk(json.dumps(data))
                     elif t == "response.audio_buffer.speech_started":
-                        print("interrupt")
-                        send_output_chunk(json.dumps(data))
+                        # Audio playback start timing
+                        await send_output_chunk(json.dumps(data))
                     elif t == "error":
                         print("error:", data)
                     elif t == "response.function_call_arguments.done":
-                        print("tool call", data)
+                        # Execute the tool when the final argument for the tool call is received
+                        print("function_call:", data)
                         await tool_executor.add_tool_call(data)
                     elif t == "response.audio_transcript.done":
-                        print("model:", data["transcript"])
+                        # When Whisper (speech recognition) is completed
+                        print("model(audio transcript):", data["transcript"])
                     elif t == "conversation.item.input_audio_transcription.completed":
-                        print("user:", data["transcript"])
+                        # Transcript when microphone input is completed
+                        print("user(audio):", data["transcript"])
+                    elif t == "response.text.delta":
+                        # ignore text.delta until text.done
+                        print("response.text.delta (ignore) :", data)
                     elif t == "response.text.done":
-                        print("response.text.done: ", data)
-                        print("音声で回答が突然できなくなった場合にここに陥る可能性がある")
+                        # Text response is completed, send it to the client
+                        print("response.text.done:", data)
+                        response_text = data.get("text", "")
+                        await send_output_chunk(response_text)
                     elif t in EVENTS_TO_IGNORE:
+                        # Events to ignore
                         pass
                     elif t == "input_audio_buffer.speech_started":
-                        print(t, "入力が開始されたら音声をクライアント側の音声を止める。しかしこれではなく、クライアント側でやったほうが良いように思われる")
+                        print("input_audio_buffer.speech_started",
+                            "Consider handling interruptions or other processes on the client side")
                     else:
-                        print(t)
-
+                        print("Unhandled event type:", t)
 
 __all__ = ["OpenAIVoiceReactAgent"]
