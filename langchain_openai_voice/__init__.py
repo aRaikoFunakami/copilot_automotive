@@ -12,6 +12,8 @@ from langchain_core.utils import secret_from_env
 
 from pydantic import BaseModel, Field, SecretStr, PrivateAttr
 
+TEXT_INPUT_RESPONSE_MODE = "text"
+
 DEFAULT_MODEL = "gpt-4o-realtime-preview-2024-10-01"
 DEFAULT_URL = "wss://api.openai.com/v1/realtime"
 
@@ -290,7 +292,7 @@ class OpenAIVoiceReactAgent(BaseModel):
                     event = {
                         "type": "response.create",
                         "response": {
-                            "modalities": ["text"],
+                            "modalities": [TEXT_INPUT_RESPONSE_MODE],
                             "instructions": "Please respond concisely."
                         }
                     }
