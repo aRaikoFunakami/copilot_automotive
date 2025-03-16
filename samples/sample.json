@@ -1,0 +1,20 @@
+{
+  "comment": "this is a sample json for notifying a user name",
+  "event_id": "event_1718",
+  "type": "conversation.item.create",
+  "previous_item_id": null,
+  "item": {
+    "id": "msg_003",
+    "type": "message",
+    "role": "user",
+    "content": [
+      {
+        "type": "input_text",
+        "text": "私の名前はマイケルです"
+      }
+    ]
+  }
+}
+
+
+{"event_id":"event_1718","type":"conversation.item.create","previous_item_id":null,"item":{"id":"msg_003","type":"message","role":"user","content":[{"type":"input_text","text":"私の名前はマイケルです"}]}}
