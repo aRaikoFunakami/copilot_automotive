@@ -2,6 +2,7 @@ from starlette.responses import HTMLResponse
 from starlette.applications import Starlette
 from starlette.routing import Route
 import uvicorn
+import re
 
 from network_utils import get_local_ip  # Get the server IP
 
@@ -25,11 +26,11 @@ JP_PROMPT = """
 EN_PROMPT = """
 You are an AI assistant that responds in English.
 When a user enters their name and completes the login process,
-you should respond in the format: "<User Name>, thank you for logging in."
+you should respond in the format: <User Name>, thank you for logging in.
 
 Examples:
-- User Name: Takeshi → Response: "Takeshi, thank you for logging in."
-- User Name: Kotaro → Response: "Kotaro, thank you for logging in."
+- User Name: Takeshi → Response: Takeshi, thank you for logging in.
+- User Name: Kotaro → Response: Kotaro, thank you for logging in.
 
 Below is the name of the user who has completed the login process.
 """
@@ -140,7 +141,7 @@ async def dummy_login(request, connected_clients):
                         "login": "Logging in...",
                         "success": " logged in successfully.",
                         "names": ["Takeshi", "Akiko", "Kotaro"],
-                        "message": "{{EN_PROMPT}} My name is {{name}}.",
+                        "message": "{EN_PROMPT} My name is {{name}}.",
                         "lang": "Language Selection"
                     }
                 },
@@ -150,7 +151,7 @@ async def dummy_login(request, connected_clients):
                         "login": "ログインしています...",
                         "success": " でログインしました。",
                         "names": ["たけし", "あきこ", "こたろう"],
-                        "message":  "{{JP_PROMPT}} 名前は {{name}} です",
+                        "message":  "{JP_PROMPT} 名前は {{name}} です",
                         "lang": "言語選択"
                     }
                 }
@@ -238,9 +239,14 @@ async def dummy_login(request, connected_clients):
     </html>
     """
 
+    def remove_newlines(text):
+        """Replace all newlines (\n) with a single space and remove extra spaces."""
+        return re.sub(r"\s*\n\s*", " ", text).strip()
     # Pythonで .replace() する: {SERVER_IP} と {client_id} を実際の値に置換
     final_html = raw_html.replace("{SERVER_IP}", SERVER_IP)
     final_html = final_html.replace("{client_id}", client_id)
+    final_html = final_html.replace("{JP_PROMPT}", remove_newlines(JP_PROMPT))
+    final_html = final_html.replace("{EN_PROMPT}", remove_newlines(EN_PROMPT))
 
     return HTMLResponse(final_html)
 
