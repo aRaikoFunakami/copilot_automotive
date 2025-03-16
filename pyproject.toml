@@ -23,6 +23,8 @@ starlette = "^0.41.3"
 serverutils = "^4.2.1"
 uvicorn = "^0.32.1"
 websockets = "^13.1"
+qrcode = "^8.0"
+pillow = "^11.1.0"
 
 
 [build-system]
