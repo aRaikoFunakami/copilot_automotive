@@ -44,11 +44,11 @@ async def driver_assist_ai(ai_input_queue: asyncio.Queue, output_queue: asyncio.
             try:
                 incoming_data = json.loads(incoming_data)
             except json.JSONDecodeError:
-                logging.error(f"Invalid JSON format: {incoming_data}. Skipping.")
+                logging.warning(f"Unexpected JSON structure: {str(incoming_data)[:100]}. Skipping.")
                 continue
 
         if not is_valid_json_format(incoming_data):
-            logging.warning(f"Unexpected JSON structure: {incoming_data}. Skipping.")
+            logging.warning(f"Unexpected JSON structure: {str(incoming_data)[:100]}. Skipping.")
             continue
 
         # Generate AI suggestion
