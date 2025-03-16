@@ -53,7 +53,6 @@ async def websocket_endpoint(websocket: WebSocket):
                     logging.warning(f"Received non-JSON message: {message}")
                     # Store non-JSON messages as raw text in queues
                     await input_queue.put(message)
-                    await ai_input_queue.put(message)
                     continue  # Skip JSON processing
 
                 if not isinstance(data, dict) or "type" not in data:
@@ -61,7 +60,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     await websocket.send_text(json.dumps({"error": "Malformed data"}))
                     continue
 
-                if data.get("type") == "send_to_client":
+                if data.get("type") == "dummy_login":
                     # Forward message to target client
                     target_id = data.get("target_id")
                     msg_content = data.get("message")
@@ -73,6 +72,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         logging.warning(f"Target client {target_id} not found.")
                         await websocket.send_text(json.dumps({"error": "Target client not found"}))
                 else:
+                    # Store valid JSON messages in the input queue and ai_input_queue
                     await input_queue.put(message)
                     await ai_input_queue.put(message)
 

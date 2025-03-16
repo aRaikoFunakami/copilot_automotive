@@ -192,7 +192,7 @@ async def dummy_login(request, connected_clients):
                 document.getElementById("status").innerText = i18next.t("login");
 
                 const message = {
-                    type: "send_to_client",
+                    type: "dummy_login",
                     target_id: "{client_id}",
                     message: i18next.t("message", { name: name })
                 };
