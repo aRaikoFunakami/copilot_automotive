@@ -27,10 +27,7 @@ async def driver_assist_ai(ai_input_queue: asyncio.Queue, output_queue: asyncio.
         logging.info(f"Processing vehicle data: {json.dumps(data, indent=2)}")
 
         formatted_message = json.dumps(data) if isinstance(data, dict) else str(data)
-        if ENABLE_DRIVER_ASSIST:
-            suggestion = await driver_assist_ai.run_agent(formatted_message, driver_assist_ai_thread)
-        else:
-            suggestion = None
+        suggestion = await driver_assist_ai.run_agent(formatted_message, driver_assist_ai_thread)
         logging.info(f"AI Suggestion: {suggestion}")
 
         return suggestion if suggestion else "No suggestion generated."
@@ -38,6 +35,10 @@ async def driver_assist_ai(ai_input_queue: asyncio.Queue, output_queue: asyncio.
     while True:
         # Retrieve data from the AI input queue
         incoming_data = await ai_input_queue.get()
+
+        if ENABLE_DRIVER_ASSIST==False:
+            logging.info(f"ENABLE_DRIVER_ASSIST: {ENABLE_DRIVER_ASSIST}")
+            continue
 
         if incoming_data is None:
             logging.warning("Received NoneType input. Skipping.")
@@ -57,6 +58,7 @@ async def driver_assist_ai(ai_input_queue: asyncio.Queue, output_queue: asyncio.
         # Generate AI suggestion
         suggestion = await ai_generate_suggestions(incoming_data)
         await output_queue.put(suggestion)  # Store result in output queue
+        
         logging.info(f"Added AI-generated suggestion to output_queue: {suggestion}")
 
 
