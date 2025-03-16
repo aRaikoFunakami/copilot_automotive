@@ -3,7 +3,7 @@ import logging
 import asyncio
 from agent_driver_assist_ai import AgentDriverAssistAI
 
-
+ENABLE_DRIVER_ASSIST=False
 
 def is_valid_json_format(data: dict) -> bool:
     """Check if the received JSON data follows the expected format."""
@@ -27,7 +27,10 @@ async def driver_assist_ai(ai_input_queue: asyncio.Queue, output_queue: asyncio.
         logging.info(f"Processing vehicle data: {json.dumps(data, indent=2)}")
 
         formatted_message = json.dumps(data) if isinstance(data, dict) else str(data)
-        suggestion = await driver_assist_ai.run_agent(formatted_message, driver_assist_ai_thread)
+        if ENABLE_DRIVER_ASSIST:
+            suggestion = await driver_assist_ai.run_agent(formatted_message, driver_assist_ai_thread)
+        else:
+            suggestion = None
         logging.info(f"AI Suggestion: {suggestion}")
 
         return suggestion if suggestion else "No suggestion generated."
