@@ -1,6 +1,7 @@
 import asyncio
 import json
 import websockets
+import logging
 
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, AsyncIterator, Any, Callable, Coroutine
@@ -12,8 +13,6 @@ from langchain_core.utils import secret_from_env
 
 from pydantic import BaseModel, Field, SecretStr, PrivateAttr
 
-# ["text"] or ["text", "audio"]
-TEXT_INPUT_RESPONSE_MODE = ["text", "audio"]
 
 DEFAULT_MODEL = "gpt-4o-realtime-preview-2024-10-01"
 DEFAULT_URL = "wss://api.openai.com/v1/realtime"
@@ -243,6 +242,20 @@ class OpenAIVoiceReactAgent(BaseModel):
                 }
             )
 
+            def is_input_text(role: str, data: dict) -> bool:
+                if not role in ["user", "assistant", "system"]:
+                    logging.error(f"Invalid role: {role}")
+                    return False
+                
+                if "item" in data and "content" in data["item"] and "role" in data["item"]:
+                    if data["item"]["role"] != role:
+                        return False
+                    
+                    for content in data["item"]["content"]:
+                        if content.get("type") == "input_text":
+                            return True
+                return False
+            
             # amerge to bring together 3 streams.
             # 1. input_mic=input_stream (voice or text)
             # 2. output_speaker=model_receive_stream (response from OpenAI)
@@ -259,41 +272,32 @@ class OpenAIVoiceReactAgent(BaseModel):
                     )
                 except json.JSONDecodeError:
                     # Interpreted as text input
-                    print("Received raw text input:", data_raw)
-                    data = {
-                        "type": "conversation.item.create",
-                        "item": {
-                            "id": "text_input",
-                            "type": "message",
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "input_text",
-                                    "text": data_raw
-                                }
-                            ],
-                        },
-                    }
-                    stream_key = "text"
+                    print("Ignore received raw text input:", data_raw)
+                    continue
+
+                # When text input is received from the client
+                if stream_key == "input_mic" and (is_input_text("user", data) or is_input_text("system", data)):
+                    stream_key = "input_text"
+
 
                 if stream_key == "input_mic":
-                    # Audio/JSON events are transferred directly to the model.
-                    t = data["type"]
-                    if t == "conversation.item.create":
-                        print("conversation item create: ", data)
+                    print("conversation item create: ", data)
                     await model_send(data)
 
-                elif stream_key == "text":
-                    # Raw text input is sent to the model side.
-                    print("Received text input => sending to model:", data)
+                elif stream_key == "input_text":
                     await model_send(data)
+                    print("stream_key:", stream_key, "data:", json.dumps(data, indent=2))
                     await asyncio.sleep(0.1)
 
                     # Send ‘response.create’ to generate a text response
+                    if is_input_text("user", data):
+                        modalities = ["text", "audio"]
+                    else: 
+                        modalities = ["text"]
                     event = {
                         "type": "response.create",
                         "response": {
-                            "modalities": TEXT_INPUT_RESPONSE_MODE,
+                            "modalities": modalities,
                             "instructions": "Please respond concisely."
                         }
                     }
@@ -341,9 +345,9 @@ class OpenAIVoiceReactAgent(BaseModel):
                     elif t == "conversation.item.input_audio_transcription.completed":
                         # Transcript when microphone input is completed
                         print("user(audio):", data["transcript"])
-                    elif t == "response.text.delta":
-                        # ignore text.delta until text.done
-                        print("response.text.delta (ignore) :", data)
+                    #elif t == "response.text.delta":
+                    #    ignore text.delta until text.done
+                    #    print("response.text.delta (ignore) :", data)
                     elif t == "response.text.done":
                         # Text response is completed, send it to the client
                         print("response.text.done:", data)

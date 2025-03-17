@@ -24,6 +24,24 @@ connected_clients = {}
 # Get the local server IP address
 SERVER_IP = get_local_ip()
 
+def text_to_realtime_api_json_as_role(role: str, data_raw: str):
+    data = {
+        "type": "conversation.item.create",
+        "item": {
+            "id": "text_input",
+            "type": "message",
+            "role": role,
+            "content": [
+                {
+                    "type": "input_text",
+                    "text": data_raw
+                }
+            ],
+        },
+    }
+    #logging.info(f"Converted text to Realtime API JSON: {data}")
+    return data
+
 async def websocket_endpoint(websocket: WebSocket):
     """Handles WebSocket connections and manages data exchange between the client and AI."""
     try:
@@ -48,12 +66,12 @@ async def websocket_endpoint(websocket: WebSocket):
             """Receives data from the WebSocket client and processes messages."""
             async for message in websocket_stream(websocket):
                 try:
-                    data = json.loads(message)  # Try parsing as JSON
+                    data = json.loads(message)
                 except json.JSONDecodeError:
-                    logging.warning(f"Received non-JSON message: {message}")
-                    # Store non-JSON messages as raw text in queues
+                    message = text_to_realtime_api_json_as_role("user", message)
                     await input_queue.put(message)
-                    continue  # Skip JSON processing
+                    continue
+  
 
                 if not isinstance(data, dict) or "type" not in data:
                     logging.warning("Received malformed JSON data.")
@@ -67,6 +85,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
                     if target_id in connected_clients:
                         logging.info(f"Forwarding message to {target_id}: {msg_content}")
+                        msg_content = text_to_realtime_api_json_as_role("user", msg_content)
                         await connected_clients[target_id]["input_queue"].put(msg_content)
                     else:
                         logging.warning(f"Target client {target_id} not found.")
