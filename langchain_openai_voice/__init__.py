@@ -30,6 +30,8 @@ EVENTS_TO_IGNORE = {
     "session.updated",
     "response.done",
     "response.output_item.done",
+    "response.text.delta",
+    "response.output_item.added",
 }
 
 
@@ -272,7 +274,7 @@ class OpenAIVoiceReactAgent(BaseModel):
                     )
                 except json.JSONDecodeError:
                     # Interpreted as text input
-                    print("Ignore received raw text input:", data_raw)
+                    logging.error("Ignore received raw text input:", data_raw)
                     continue
 
                 # When text input is received from the client
@@ -281,12 +283,12 @@ class OpenAIVoiceReactAgent(BaseModel):
 
 
                 if stream_key == "input_mic":
-                    print("conversation item create: ", data)
+                    logging.info(f"stream_key:{stream_key} data:{json.dumps(data, indent=2, ensure_ascii=False)[:100]}")
                     await model_send(data)
 
                 elif stream_key == "input_text":
                     await model_send(data)
-                    print("stream_key:", stream_key, "data:", json.dumps(data, indent=2))
+                    logging.info(f"stream_key:{stream_key} data:{json.dumps(data, indent=2, ensure_ascii=False)}")
                     await asyncio.sleep(0.1)
 
                     # Send ‘response.create’ to generate a text response
@@ -301,12 +303,12 @@ class OpenAIVoiceReactAgent(BaseModel):
                             "instructions": "Please respond concisely."
                         }
                     }
-                    print("Sending response.create for text input:", event)
+                    logging.info("Sending response.create for text input: %s", json.dumps(event, indent=2, ensure_ascii=False))
                     await model_send(event)
 
                 elif stream_key == "tool_outputs":
                     # Returns the results of the tool execution to both model + client
-                    print("tool output:", data)
+                    logging.info(f"stream_key:{stream_key} data:{json.dumps(data, indent=2, ensure_ascii=False)}")
                     await model_send(data)
                     await model_send({"type": "response.create", "response": {}})
 
@@ -334,32 +336,29 @@ class OpenAIVoiceReactAgent(BaseModel):
                         # Audio playback start timing
                         await send_output_chunk(json.dumps(data))
                     elif t == "error":
-                        print("error:", data)
+                        logging.error("error:", json.dumps(data, indent=2, ensure_ascii=False))
                     elif t == "response.function_call_arguments.done":
                         # Execute the tool when the final argument for the tool call is received
-                        print("function_call:", data)
+                        logging.info("function_call:", json.dumps(data, indent=2, ensure_ascii=False))
                         await tool_executor.add_tool_call(data)
                     elif t == "response.audio_transcript.done":
                         # When Whisper (speech recognition) is completed
-                        print("model(audio transcript):", data["transcript"])
+                        logging.info("model(audio transcript): %s", json.dumps(data["transcript"], indent=2, ensure_ascii=False))
                     elif t == "conversation.item.input_audio_transcription.completed":
                         # Transcript when microphone input is completed
-                        print("user(audio):", data["transcript"])
-                    #elif t == "response.text.delta":
-                    #    ignore text.delta until text.done
-                    #    print("response.text.delta (ignore) :", data)
+                        logging.info("user(audio): %s", json.dumps(data["transcript"], indent=2, ensure_ascii=False))
                     elif t == "response.text.done":
                         # Text response is completed, send it to the client
-                        print("response.text.done:", data)
+                        logging.info("response.text.done: %s", json.dumps(data, indent=2, ensure_ascii=False))
                         response_text = data.get("text", "")
                         await send_output_chunk(response_text)
                     elif t in EVENTS_TO_IGNORE:
                         # Events to ignore
                         pass
                     elif t == "input_audio_buffer.speech_started":
-                        print("input_audio_buffer.speech_started",
+                        logging.warning("input_audio_buffer.speech_started",
                             "Consider handling interruptions or other processes on the client side")
                     else:
-                        print("Unhandled event type:", t)
+                        logging.error("Unhandled event type: %s", t)
 
 __all__ = ["OpenAIVoiceReactAgent"]
