@@ -34,6 +34,27 @@ EVENTS_TO_IGNORE = {
     "response.output_item.added",
 }
 
+RESPONSE_CREATE_TEXT = {
+    "type": "response.create",
+    "event_id": "text_event",
+    "response": {
+        "modalities": ["text"],
+        "instructions": "Please respond by text.",
+    },
+    
+}
+
+RESPONSE_CREATE_AUDIO = {
+    "type": "response.create",
+    "event_id": "audio_event",
+    "response": {
+        "modalities": ["text", "audio"],
+        "instructions": "Please respond by audio.",
+        "voice": "sage",
+    },
+}
+
+
 
 @asynccontextmanager
 async def connect(*, api_key: str, model: str, url: str) -> AsyncGenerator[
@@ -240,6 +261,7 @@ class OpenAIVoiceReactAgent(BaseModel):
                             "model": "whisper-1",
                         },
                         "tools": tool_defs,
+                        "voice": "sage",
                     },
                 }
             )
@@ -293,16 +315,9 @@ class OpenAIVoiceReactAgent(BaseModel):
 
                     # Send ‘response.create’ to generate a text response
                     if is_input_text("user", data):
-                        modalities = ["text", "audio"]
+                        event = RESPONSE_CREATE_AUDIO
                     else: 
-                        modalities = ["text"]
-                    event = {
-                        "type": "response.create",
-                        "response": {
-                            "modalities": modalities,
-                            "instructions": "Please respond concisely."
-                        }
-                    }
+                        event = RESPONSE_CREATE_TEXT
                     logging.info("Sending response.create for text input: %s", json.dumps(event, indent=2, ensure_ascii=False))
                     await model_send(event)
 
@@ -336,10 +351,10 @@ class OpenAIVoiceReactAgent(BaseModel):
                         # Audio playback start timing
                         await send_output_chunk(json.dumps(data))
                     elif t == "error":
-                        logging.error("error:", json.dumps(data, indent=2, ensure_ascii=False))
+                        logging.error("error: %s", json.dumps(data, indent=2, ensure_ascii=False))
                     elif t == "response.function_call_arguments.done":
                         # Execute the tool when the final argument for the tool call is received
-                        logging.info("function_call:", json.dumps(data, indent=2, ensure_ascii=False))
+                        logging.info("function_call: %s", json.dumps(data, indent=2, ensure_ascii=False))
                         await tool_executor.add_tool_call(data)
                     elif t == "response.audio_transcript.done":
                         # When Whisper (speech recognition) is completed

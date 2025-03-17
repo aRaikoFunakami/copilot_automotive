@@ -8,6 +8,7 @@ from starlette.responses import HTMLResponse, JSONResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket
+from starlette.websockets import WebSocketState
 
 from langchain_openai_voice import OpenAIVoiceReactAgent
 from realtime_utils import *
@@ -78,7 +79,10 @@ async def websocket_endpoint(websocket: WebSocket):
                     await websocket.send_text(json.dumps({"error": "Malformed data"}))
                     continue
 
-                if data.get("type") == "dummy_login":
+                data_type = data.get("type")
+                logging.info(f"Received data_type: {data_type}")
+                
+                if  data_type == "dummy_login":
                     # Forward message to target client
                     target_id = data.get("target_id")
                     msg_content = data.get("message")
@@ -90,10 +94,13 @@ async def websocket_endpoint(websocket: WebSocket):
                     else:
                         logging.warning(f"Target client {target_id} not found.")
                         await websocket.send_text(json.dumps({"error": "Target client not found"}))
+                elif data_type == "vehicle_status":
+                    await ai_input_queue.put(message)
+                    #await input_queue.put(text_to_realtime_api_json_as_role("system", data))
                 else:
                     # Store valid JSON messages in the input queue and ai_input_queue
                     await input_queue.put(message)
-                    await ai_input_queue.put(message)
+                    
 
         async def merged_stream():
             """Continuously retrieves data from input_queue and sends it to the client."""
@@ -120,7 +127,13 @@ async def websocket_endpoint(websocket: WebSocket):
     finally:
         if client_id in connected_clients:
             del connected_clients[client_id]
-        await websocket.close()
+
+        try:
+            if websocket.application_state != WebSocketState.DISCONNECTED:
+                await websocket.close()
+        except Exception as e:
+            logging.warning(f"Error while closing WebSocket: {str(e)}")
+        
         logging.info(f"WebSocket disconnected: {client_id}")
 
 async def generate_qr_code_with_clients(request):
