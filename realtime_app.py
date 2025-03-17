@@ -96,7 +96,7 @@ async def websocket_endpoint(websocket: WebSocket):
                         await websocket.send_text(json.dumps({"error": "Target client not found"}))
                 elif data_type == "vehicle_status":
                     await ai_input_queue.put(message)
-                    #await input_queue.put(text_to_realtime_api_json_as_role("system", data))
+                    await input_queue.put(text_to_realtime_api_json_as_role("system", str(data)))
                 else:
                     # Store valid JSON messages in the input queue and ai_input_queue
                     await input_queue.put(message)

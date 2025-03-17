@@ -371,8 +371,7 @@ class OpenAIVoiceReactAgent(BaseModel):
                         # Events to ignore
                         pass
                     elif t == "input_audio_buffer.speech_started":
-                        logging.warning("input_audio_buffer.speech_started",
-                            "Consider handling interruptions or other processes on the client side")
+                        logging.warning("input_audio_buffer.speech_started.\n Consider handling interruptions or other processes on the client side")
                     else:
                         logging.error("Unhandled event type: %s", t)
 
