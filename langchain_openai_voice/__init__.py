@@ -296,7 +296,7 @@ class OpenAIVoiceReactAgent(BaseModel):
                     )
                 except json.JSONDecodeError:
                     # Interpreted as text input
-                    logging.error("Ignore received raw text input:", data_raw)
+                    logging.error("Ignore received raw text input: %s", data_raw)
                     continue
 
                 # When text input is received from the client
@@ -358,7 +358,8 @@ class OpenAIVoiceReactAgent(BaseModel):
                         await tool_executor.add_tool_call(data)
                     elif t == "response.audio_transcript.done":
                         # When Whisper (speech recognition) is completed
-                        logging.info("model(audio transcript): %s", json.dumps(data["transcript"], indent=2, ensure_ascii=False))
+                        # logging.info("model(audio transcript): %s", json.dumps(data["transcript"], indent=2, ensure_ascii=False))
+                        pass
                     elif t == "conversation.item.input_audio_transcription.completed":
                         # Transcript when microphone input is completed
                         logging.info("user(audio): %s", json.dumps(data["transcript"], indent=2, ensure_ascii=False))
