@@ -1,100 +1,123 @@
 import asyncio
 import uuid
+import logging
+import json
 from typing import Dict
 
 from langchain_openai import ChatOpenAI
-from langchain_community.tools.tavily_search import TavilySearchResults
-from langchain_core.messages import HumanMessage
-from langgraph.checkpoint.memory import MemorySaver
-from langgraph.prebuilt import create_react_agent
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.prompts import PromptTemplate
 
+# グローバル管理（モード追加はここだけ）
+AGENT_MODES = ["video", "schedule"]
+
+# SYSTEM PROMPT（エスケープ済み）
+SYSTEM_PROMPT = {
+    "video": '''
+あなたは車両内のエンターテイメントアシスタントです。
+ユーザーの好みと現在の状況を考慮し、最適な動画コンテンツを提案してください。
+必ず以下の形式でJSON出力してください。
+
+{{
+  "proposal": {{
+    "title": "提案タイトル",
+    "reason": "提案理由",
+    "action": "具体的な提案内容"
+  }}
+}}
+''',
+    "schedule": '''
+あなたはスケジュール管理アシスタントです。
+車両情報とカレンダー予定から遅刻の可能性を判定し、以下の形式でJSON出力してください。
+
+{{
+  "proposal": {{
+    "title": "遅延通知タイトル",
+    "reason": "遅延の理由",
+    "action": "ユーザーへの具体的通知内容"
+  }}
+}}
+'''
+}
 
 class AgentDriverAssistAI:
-    """Reusable LangChain-based agent with persistent memory and thread management."""
+    """LangChainベースのエージェントマネージャー"""
 
-    def __init__(self, model_name="gpt-4o", max_search_results=2):
-        """
-        Initialize the agent with model, search tool, and memory storage per thread.
-        """
+    def __init__(self, model_name="gpt-4o-mini"):
         self.model_name = model_name
-        self.max_search_results = max_search_results
-        self.agents: Dict[str, Dict] = {}  # Stores agents by thread_id
+        self.agents: Dict[str, Dict] = {}
 
     def create_agent(self, thread_id: str = None):
-        """
-        Create or retrieve an agent instance based on thread_id.
-        If thread_id is not provided, a new one is generated.
-        """
         if thread_id is None:
-            thread_id = str(uuid.uuid4())  # Generate a unique thread ID
+            thread_id = str(uuid.uuid4())
 
         if thread_id not in self.agents:
-            memory = MemorySaver()
-            model = ChatOpenAI(model_name=self.model_name)
-            search = TavilySearchResults(max_results=self.max_search_results)
-            tools = [search]
-            agent_executor = create_react_agent(model, tools, checkpointer=memory)
+            models = {mode: ChatOpenAI(model_name=self.model_name) for mode in AGENT_MODES}
+            self.agents[thread_id] = {"models": models}
 
-            self.agents[thread_id] = {
-                "executor": agent_executor,
-                "memory": memory,
-                "config": {"configurable": {"thread_id": thread_id}},
-            }
+        return thread_id
 
-        return thread_id  # Return thread_id so it can be reused externally
-
-    async def run_agent(self, message: str, thread_id: str):
-        """
-        Run the agent asynchronously with a given message in a specified thread.
-        """
+    async def run_agent(self, user_data: str, thread_id: str):
         if thread_id not in self.agents:
             raise ValueError(f"Thread ID {thread_id} not found. Create an agent first.")
 
         agent_data = self.agents[thread_id]
-        agent_executor = agent_data["executor"]
-        config = agent_data["config"]
+        agent_models = agent_data["models"]
 
-        async for step in agent_executor.astream(
-            {"messages": [HumanMessage(content=message)]},
-            config,
-            stream_mode="values",
-        ):
-            print(f"[Thread {thread_id}] {step['messages'][-1].content}")  # Print latest message
+        # JSON出力保証パーサー
+        parser = JsonOutputParser()
 
-        response = step["messages"][-1].content  # Store latest response
-        return response  # Return the last response
+        chains = {}
+        for mode in AGENT_MODES:
+            prompt = PromptTemplate(
+                template="{system_prompt}\n{format_instructions}\n{user_input}\n",
+                input_variables=["user_input", "system_prompt"],
+                partial_variables={"format_instructions": parser.get_format_instructions()},
+            )
+            chains[mode] = prompt | agent_models[mode] | parser
+
+        # 並列実行
+        tasks = [
+            chains[mode].ainvoke({
+                "user_input": user_data,
+                "system_prompt": SYSTEM_PROMPT[mode]
+            }) for mode in AGENT_MODES
+        ]
+        results = await asyncio.gather(*tasks)
+
+        # モードごとに結果整形
+        final_response = {f"{mode}_proposal": result for mode, result in zip(AGENT_MODES, results)}
+
+        # JSONで見やすく出力
+        print(json.dumps(final_response, ensure_ascii=False, indent=2))
+        return final_response
 
     async def run_tasks(self, messages_per_thread: Dict[str, list]):
-        """
-        Run multiple agents concurrently in different threads.
-        """
         tasks = []
         for thread_id, messages in messages_per_thread.items():
             for message in messages:
                 tasks.append(self.run_agent(message, thread_id))
-        await asyncio.gather(*tasks)  # Run all tasks concurrently
+        await asyncio.gather(*tasks)
 
+# 車両ステータスサンプルデータ
+vehicle_status = {
+    "type": "vehicle_status",
+    "description": "This JSON represents the current vehicle status.",
+    "speed": {"value": 60, "unit": "km/h"},
+    "indoor_temperature": {"value": 20, "unit": "°C"},
+    "fuel_level": {"value": 50, "unit": "%"},
+    "location": {"latitude": 35.6997837, "longitude": 139.7741138},
+    "address": "日本、〒101-0022 東京都千代田区神田練塀町３ 大東ビル 5階",
+    "timestamp": "2025-03-17T15:27:42.781+09:00"
+}
 
-# --- Example Usage ---
 async def main():
     chat_manager = AgentDriverAssistAI()
+    thread_id = chat_manager.create_agent("thread_123")
+    # 車両情報をそのまま渡す
+    vehicle_status_json = json.dumps(vehicle_status, ensure_ascii=False, indent=2)
+    await chat_manager.run_agent(vehicle_status_json, thread_id)
 
-    # Create two separate agent threads
-    thread1 = chat_manager.create_agent("thread_123")
-    thread2 = chat_manager.create_agent("thread_456")
-
-    # Run first message for each thread
-    await chat_manager.run_agent("Hello, who are you?", thread1)
-    await chat_manager.run_agent("What is AI?", thread2)
-
-    # Multiple messages per thread
-    messages_per_thread = {
-        thread1: ["What is the capital of Japan?", "Tell me about LangChain."],
-        thread2: ["Explain quantum computing.", "Who discovered relativity?"],
-    }
-    
-    await chat_manager.run_tasks(messages_per_thread)
-
-# Run everything inside a single event loop
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
     asyncio.run(main())
