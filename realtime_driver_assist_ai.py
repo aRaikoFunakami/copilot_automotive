@@ -3,17 +3,13 @@ import logging
 import asyncio
 from agent_driver_assist_ai import AgentDriverAssistAI
 
-ENABLE_DRIVER_ASSIST=False
+ENABLE_DRIVER_ASSIST=True
 
 def is_valid_json_format(data: dict) -> bool:
     """Check if the received JSON data follows the expected format."""
     return (
         isinstance(data, dict)
-        and data.get("type") == "conversation.item.create"
-        and isinstance(data.get("item"), dict)
-        and isinstance(data["item"].get("content"), list)
-        and data["item"]["content"]
-        and data["item"]["content"][0].get("type") == "input_text"
+        and data.get("type") == "vehicle_status"
     )
 
 async def driver_assist_ai(ai_input_queue: asyncio.Queue, output_queue: asyncio.Queue):
