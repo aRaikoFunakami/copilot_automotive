@@ -20,7 +20,7 @@ async def driver_assist_ai(ai_input_queue: asyncio.Queue, output_queue: asyncio.
 
     async def ai_generate_suggestions(data: dict) -> str:
         """Generate AI suggestions and return them as a string."""
-        logging.info(f"Processing vehicle data: {json.dumps(data, indent=2)}")
+        logging.info(f"Processing vehicle data: {json.dumps(data, indent=2, ensure_ascii=False)}")
 
         formatted_message = json.dumps(data) if isinstance(data, dict) else str(data)
         suggestion = await driver_assist_ai.run_agent(formatted_message, driver_assist_ai_thread)
