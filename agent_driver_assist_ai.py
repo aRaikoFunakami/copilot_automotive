@@ -18,13 +18,25 @@ SYSTEM_PROMPT = {
 ユーザーの好みと現在の状況を考慮し、最適な動画コンテンツを提案してください。
 必ず以下の形式でJSON出力してください。
 
+以下のJSON形式で出力してください。
+注意：
+- "viewer_role" は "driver" または "passenger" のどちらかを必ず指定
+- "driving_status" は "manual", "autonomous", "charging" のいずれか
+- "network_condition" は "good" または "poor"
+
 {{
-  "proposal": {{
-    "title": "提案タイトル",
-    "reason": "提案理由",
-    "action": "具体的な提案内容"
-  }}
+    "proposal": {{ 
+        "max_duration_sec": 1800,
+        "viewer_role": "passenger",
+        "viewer_age": 28,
+        "preferred_genres": ["action", "comedy", "sci-fi"],
+        "avoid_recently_watched": true,
+        "driving_status": "autonomous",
+        "network_condition": "good",
+        "session_id": "abc123xyz789"
+    }}
 }}
+
 ''',
     "schedule": '''
 あなたはスケジュール管理アシスタントです。
@@ -100,6 +112,7 @@ class AgentDriverAssistAI:
         await asyncio.gather(*tasks)
 
 # 車両ステータスサンプルデータ
+'''
 vehicle_status = {
     "type": "vehicle_status",
     "description": "This JSON represents the current vehicle status.",
@@ -110,13 +123,18 @@ vehicle_status = {
     "address": "日本、〒101-0022 東京都千代田区神田練塀町３ 大東ビル 5階",
     "timestamp": "2025-03-17T15:27:42.781+09:00"
 }
+'''
+
+from dummy_data.scenario_video import scenario_data
+
 
 async def main():
     chat_manager = AgentDriverAssistAI()
     thread_id = chat_manager.create_agent("thread_123")
     # 車両情報をそのまま渡す
-    vehicle_status_json = json.dumps(vehicle_status, ensure_ascii=False, indent=2)
-    await chat_manager.run_agent(vehicle_status_json, thread_id)
+    for vehicle_status in scenario_data:
+        vehicle_status_json = json.dumps(vehicle_status, ensure_ascii=False, indent=2)
+        await chat_manager.run_agent(vehicle_status_json, thread_id)
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
