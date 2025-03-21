@@ -112,20 +112,9 @@ class AgentDriverAssistAI:
         await asyncio.gather(*tasks)
 
 # 車両ステータスサンプルデータ
-'''
-vehicle_status = {
-    "type": "vehicle_status",
-    "description": "This JSON represents the current vehicle status.",
-    "speed": {"value": 60, "unit": "km/h"},
-    "indoor_temperature": {"value": 20, "unit": "°C"},
-    "fuel_level": {"value": 50, "unit": "%"},
-    "location": {"latitude": 35.6997837, "longitude": 139.7741138},
-    "address": "日本、〒101-0022 東京都千代田区神田練塀町３ 大東ビル 5階",
-    "timestamp": "2025-03-17T15:27:42.781+09:00"
-}
-'''
-
 from dummy_data.scenario_video import scenario_data
+
+# ダミーのリコメンドエンジン
 from agent_video_suggestion_ai import VideoRecommender
 
 async def main():
