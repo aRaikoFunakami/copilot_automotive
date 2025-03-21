@@ -195,7 +195,9 @@ async def dummy_login(request, connected_clients):
                 const message = {
                     type: "dummy_login",
                     target_id: "{client_id}",
-                    message: i18next.t("message", { name: name })
+                    message: i18next.t("message", { name: name }),
+                    user_name: name,
+                    lang: lang,
                 };
                 ws.send(JSON.stringify(message));
 

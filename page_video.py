@@ -34,11 +34,11 @@ async def page_video(request: Request):
         # YouTube autoplay対応
         iframe_src = iframe_tag['src']
         if '?' in iframe_src:
-            iframe_tag['src'] = iframe_src + '&autoplay=1&enablejsapi=1'
+            iframe_tag['src'] = iframe_src + '&autoplay=1&enablejsapi=1&mute=1'
         else:
-            iframe_tag['src'] = iframe_src + '?autoplay=1&enablejsapi=1'
+            iframe_tag['src'] = iframe_src + '?autoplay=1&enablejsapi=1&mute=1'
 
-        iframe_tag['allow'] = "autoplay; encrypted-media" 
+        iframe_tag['allow'] = "autoplay; encrypted-media;" 
         processed_iframe = str(iframe_tag)
     else:
         return HTMLResponse("<h1>Invalid iframe data</h1>", status_code=500)

@@ -58,7 +58,9 @@ async def websocket_endpoint(websocket: WebSocket):
         connected_clients[client_id] = {
             "websocket": websocket,
             "input_queue": input_queue,
-            "ai_input_queue": ai_input_queue
+            "ai_input_queue": ai_input_queue,
+            "user_name": "",
+            "lang": ""
         }
 
         # Send client ID to the client
@@ -82,14 +84,26 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 data_type = data.get("type")
                 logging.info(f"Received data_type: {data_type}")
-                
-                if  data_type == "dummy_login":
+
+                if data_type == "dummy_login":
                     # Forward message to target client
                     target_id = data.get("target_id")
                     msg_content = data.get("message")
+                    user_name = data.get("user_name")
+                    lang = data.get("lang")
 
                     if target_id in connected_clients:
-                        logging.info(f"Forwarding message to {target_id}: {msg_content}")
+                        logging.info(f"Received message: target_id:{target_id}, mas_content:{msg_content}, user_name:{user_name}, lang:{lang}")
+                        connected_clients[target_id]["user_name"] = user_name
+                        connected_clients[target_id]["lang"] = lang
+                        msg_login_notice = {
+                            "type": "login_notice",
+                            "user_name": user_name,
+                            "lang": lang,
+                        }
+                        await connected_clients[target_id]["ai_input_queue"].put(json.dumps(msg_login_notice))
+
+                        logging.info(f"Forwarding message to {target_id}: {msg_content} ")
                         msg_content = text_to_realtime_api_json_as_role("user", msg_content)
                         await connected_clients[target_id]["input_queue"].put(msg_content)
                     else:
@@ -115,8 +129,14 @@ async def websocket_endpoint(websocket: WebSocket):
             instructions=INSTRUCTIONS,
         )
 
-        # Run AI processing in the background
-        asyncio.create_task(driver_assist_ai(ai_input_queue, input_queue))
+        # driver_assist_aiへのコールバック渡し（リアルタイム送信用）
+        async def send_ai_output_to_client(suggestion: str):
+            logging.info(f"📤 Sending AI driver assist direct output to client {client_id}")
+            await websocket.send_text(suggestion)
+
+        # AIドライバーアシスト起動（send_output_chunk対応）
+        asyncio.create_task(driver_assist_ai(ai_input_queue, input_queue, send_ai_output_to_client))
+
 
         await asyncio.gather(
             client_stream(),
