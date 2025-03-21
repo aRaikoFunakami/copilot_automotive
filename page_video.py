@@ -9,7 +9,7 @@ import urllib.parse
 VIDEO_CSV_PATH = Path(__file__).parent / 'dummy_data' / 'trailer_db.csv'
 video_df = pd.read_csv(VIDEO_CSV_PATH)
 
-async def video_page(request: Request):
+async def page_video(request: Request):
     title_raw = request.path_params['title']
     # タイトルはURLエンコードされてくるのでデコード
     title = urllib.parse.unquote(title_raw)
@@ -38,6 +38,7 @@ async def video_page(request: Request):
         else:
             iframe_tag['src'] = iframe_src + '?autoplay=1&enablejsapi=1'
 
+        iframe_tag['allow'] = "autoplay; encrypted-media" 
         processed_iframe = str(iframe_tag)
     else:
         return HTMLResponse("<h1>Invalid iframe data</h1>", status_code=500)
