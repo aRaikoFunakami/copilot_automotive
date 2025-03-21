@@ -7,7 +7,8 @@ Response JSON Format Specification:
     "genre": str,                  # Genre of the recommended video (empty if no recommendation)
     "iframe": str,                 # Embeddable iframe HTML (empty if no recommendation)
     "reason": str,                 # Reason for recommendation or explanation in Japanese
-    "data_broken": bool            # True if input data is invalid or corrupted, False otherwise
+    "data_broken": bool,           # True if input data is invalid or corrupted, False otherwise
+    "video_url": str               # URL to access the video page
 }
 """
 
@@ -16,11 +17,14 @@ from pathlib import Path
 import pandas as pd
 import json
 from typing import List, Dict, Any
+import urllib.parse
+
 from langchain_openai import ChatOpenAI
 from langchain.schema import SystemMessage, HumanMessage
 from langchain_core.output_parsers import JsonOutputParser
 from langchain.prompts import PromptTemplate
 from dummy_data.trailer_db import TrailerDB
+from network_utils import get_local_ip
 
 user_prompt_template = """
 You are an AI video recommender.
@@ -89,6 +93,9 @@ class VideoRecommender:
             input_variables=["preferred_genres", "candidates"]
         )
 
+        # 動的にローカルIP取得（初期化時に取得）
+        self.server_ip = get_local_ip()
+
     async def recommend(self, proposal: Dict[str, Any]) -> Dict[str, Any]:
         required_keys = ["max_duration_sec", "preferred_genres"]
         if not isinstance(proposal, dict) or not all(key in proposal for key in required_keys):
@@ -99,7 +106,8 @@ class VideoRecommender:
                 "genre": "",
                 "iframe": "",
                 "reason": "入力データが不正または不足しています（データ破損の可能性あり）",
-                "data_broken": True
+                "data_broken": True,
+                "video_url": ""
             }
 
         candidates = self.db.get_video_candidates(proposal['max_duration_sec'])
@@ -117,7 +125,16 @@ class VideoRecommender:
         chain = self.llm | self.parser
         response = await chain.ainvoke(messages)
 
+        # フラグ追加
         response["data_broken"] = False
+
+        # 成功時のみ video_url を追加
+        if response.get("has_recommendation"):
+            encoded_title = urllib.parse.quote(response["title"])
+            response["video_url"] = f"http://{self.server_ip}:3000/videos/{encoded_title}"
+        else:
+            response["video_url"] = ""
+
         return response
 
 
