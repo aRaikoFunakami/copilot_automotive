@@ -19,30 +19,13 @@ from generate_qr_code import generate_qr_code
 from dummy_login import dummy_login
 from network_utils import get_local_ip
 from page_video import page_video
+from realtime_api_utils import text_to_realtime_api_json_as_role
 
 # Global dictionary to manage connected clients
 connected_clients = {}
 
 # Get the local server IP address
 SERVER_IP = get_local_ip()
-
-def text_to_realtime_api_json_as_role(role: str, data_raw: str):
-    data = {
-        "type": "conversation.item.create",
-        "item": {
-            "id": "text_input",
-            "type": "message",
-            "role": role,
-            "content": [
-                {
-                    "type": "input_text",
-                    "text": data_raw
-                }
-            ],
-        },
-    }
-    #logging.info(f"Converted text to Realtime API JSON: {data}")
-    return data
 
 async def websocket_endpoint(websocket: WebSocket):
     """Handles WebSocket connections and manages data exchange between the client and AI."""
