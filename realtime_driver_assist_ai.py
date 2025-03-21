@@ -37,7 +37,9 @@ async def driver_assist_ai(
     logging.info(f"Driver Assist AI thread created: {driver_assist_thread}")
 
     login_user_data = {}
+    user_lang = "ja"  # デフォルト言語（例：日本語）
     previous_data = None  # 前回データ保持
+
 
     async def ai_generate_suggestions(data: dict) -> str:
         """
@@ -98,6 +100,7 @@ async def driver_assist_ai(
             continue
 
         if parsed_data.get("type") == "login_notice":
+            user_lang = parsed_data.get("lang")
             user_name = parsed_data.get("user_name")
             user_lookup = dummy_user_data.get(user_name)
 
@@ -147,11 +150,12 @@ async def driver_assist_ai(
             await send_output_chunk(proposal_to_client)
 
             video_summary_for_ai = (
-                f"以下のような理由から、この動画を選びました。\n\n"
-                f"【タイトル】{video_proposal['title']}\n"
-                f"【ジャンル】{video_proposal['genre']}\n"
-                f"【選定理由】{video_proposal['reason']}\n\n"
-                "この内容を、簡潔にまとめ、自然な日本語でユーザーに説明する形式で返答してください。"
+                f"I selected this video for the following reasons:\n\n"
+                f"【Title】{video_proposal['title']}\n"
+                f"【Genre】{video_proposal['genre']}\n"
+                f"【Reason】{video_proposal['reason']}\n\n"
+                f"Please summarize the content concisely and explain it to the user in natural language. "
+                f"Respond in the language specified by '{user_lang}'."
             )
             await output_queue.put(text_to_realtime_api_json_as_role("user", video_summary_for_ai))
         else:
@@ -172,7 +176,7 @@ async def test_driver_assist_ai():
 
     async def send_output_to_client(suggestion: str):
         print(f"[Client Direct Output]:\n{suggestion}")
-        await output_queue.put(suggestion)
+        #await output_queue.put(suggestion)
 
     # Start driver_assist_ai task
     driver_assist_task = asyncio.create_task(driver_assist_ai(ai_input_queue, output_queue, send_output_to_client))
