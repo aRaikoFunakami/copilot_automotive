@@ -43,7 +43,7 @@ async def driver_assist_ai(
         """
         try:
             #logging.info(f"Processing vehicle data:\n{json.dumps(data, indent=2, ensure_ascii=False)}")
-            formatted_message = json.dumps(data, ensure_ascii=False)
+            formatted_message = json.dumps(data, ensure_ascii=False, indent=2)
             # Timeout to prevent infinite wait if model is stuck
             suggestion = await asyncio.wait_for(
                 driver_assist.run_agent(formatted_message, driver_assist_thread),
@@ -94,7 +94,7 @@ async def driver_assist_ai(
             user_name = parsed_data.get("user_name")
             if user_name in dummy_user_data:
                 login_user_data = dummy_user_data[user_name]
-                logging.info(f"User data loaded for {user_name}: {json.dumps(login_user_data, ensure_ascii=False)}")
+                logging.info(f"User data loaded for {user_name}: {json.dumps(login_user_data, ensure_ascii=False, indent=2)}")
             else:
                 logging.warning(f"User name {user_name} not found in dummy data.")
             continue
@@ -107,32 +107,29 @@ async def driver_assist_ai(
             vehicle_status = parsed_data
 
         if "user_data" not in vehicle_status or not vehicle_status["user_data"]:
-            if is_user_data(login_user_data):
-                logging.info("vehicle_status に user_data が無いため、login_user_data を補完します。")
-                vehicle_status["user_data"] = login_user_data
+            logging.info("vehicle_status に user_data が無いため、login_user_data を補完します。")      
+            if not login_user_data:
+                logging.warning("⚠ login_user_data が空です。補完される user_data がありません。")
             else:
-                logging.warning("user_data が無く、login_user_data も未登録のため補完できません.")
+                logging.info("login_user_data : %s", json.dumps(login_user_data, ensure_ascii=False, indent=2))
+            vehicle_status["user_data"] = login_user_data
 
         # Generate AI suggestion bundle (contains multiple proposals)
         proposal_result = await ai_generate_suggestions(vehicle_status)
-        logging.error("TESTTESTTEST")
 
         # Check video_proposal layer for return_direct flag
         try:
-            logging.error("proposal_result : %s", proposal_result)
             proposal_json = json.loads(proposal_result)          
         except json.JSONDecodeError:
             proposal_json = {}
 
-        logging.error("video_proposal : %s", json.dumps(proposal_json, ensure_ascii=False, indent=2))
         video_proposal = proposal_json.get("video_proposal", {})
         
-
         # If return_direct in video_proposal, send to client
         if isinstance(video_proposal, dict) and video_proposal.get("return_direct", False):
             logging.info("video_proposal の return_direct フラグ付きのため、クライアントに直接送信します.")
             logging.info("video_proposal : %s", json.dumps(video_proposal, ensure_ascii=False, indent=2))
-            await send_output_chunk(json.dumps(video_proposal))
+            await send_output_chunk(json.dumps(video_proposal, ensure_ascii=False, indent=2))
 
         # Always put result to output queue (so test can proceed)
         #await output_queue.put(proposal_result)
@@ -151,7 +148,7 @@ async def test_driver_assist_ai():
     output_queue = asyncio.Queue()
 
     async def send_output_to_client(suggestion: str):
-        print(f"[Client Direct Output]:\n{json.dumps(suggestion, ensure_ascii=False, indent=2)}")
+        print(f"[Client Direct Output]:\n{suggestion}")
         await output_queue.put(suggestion)
 
     # Start driver_assist_ai task
@@ -169,7 +166,7 @@ async def test_driver_assist_ai():
 
         # Retrieve AI output from the output queue
         suggestion = await output_queue.get()
-        print(f"[AI Output for Scenario {idx + 1}]:\n{json.dumps(suggestion, ensure_ascii=False, indent=2)}")
+        print(f"[AI Output for Scenario {idx + 1}]:\n{suggestion}")
 
     # All scenarios processed, now gracefully stop
     await ai_input_queue.put(STOP_SIGNAL)
@@ -178,6 +175,6 @@ async def test_driver_assist_ai():
 if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s - %(levelname)s - %(message)s"
+        format="%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s"
     )
     asyncio.run(test_driver_assist_ai())

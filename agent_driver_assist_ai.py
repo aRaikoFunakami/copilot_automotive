@@ -52,7 +52,7 @@ Output JSON format:
 class AgentDriverAssistAI:
     """LangChain-based agent manager"""
 
-    def __init__(self, model_name: str = "gpt-4o-mini") -> None:
+    def __init__(self, model_name: str = "gpt-4o") -> None:
         self.model_name = model_name
         self.agents: Dict[str, Dict[str, Any]] = {}
 
@@ -81,6 +81,7 @@ class AgentDriverAssistAI:
             for mode in AGENT_MODES
         }
 
+        logging.info("user_data: " + user_data)
         # Run both video and schedule concurrently
         tasks = [
             chains[mode].ainvoke({
@@ -132,5 +133,9 @@ async def main():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s"
+    )
+    
     asyncio.run(main())
