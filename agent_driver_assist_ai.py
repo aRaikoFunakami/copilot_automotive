@@ -82,7 +82,7 @@ class AgentDriverAssistAI:
             for mode in AGENT_MODES
         }
 
-        logging.info("user_data: " + user_data)
+        #logging.info("user_data: " + user_data)
         # Run both video and schedule concurrently
         tasks = [
             chains[mode].ainvoke({
@@ -110,7 +110,7 @@ class AgentDriverAssistAI:
             final_response["video_proposal"] = video_proposal
 
         final_response_str = json.dumps(final_response, ensure_ascii=False, indent=2)
-        logging.info(final_response_str)
+        # logging.info(final_response_str)
         return final_response_str
 
     async def run_tasks(self, messages_per_thread: Dict[str, list]) -> None:
