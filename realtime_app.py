@@ -18,6 +18,7 @@ from realtime_driver_assist_ai import driver_assist_ai
 from generate_qr_code import generate_qr_code
 from dummy_login import dummy_login
 from network_utils import get_local_ip
+from page_video import video_page
 
 # Global dictionary to manage connected clients
 connected_clients = {}
@@ -165,6 +166,7 @@ routes = [
     WebSocketRoute("/ws", websocket_endpoint),
     Route("/generate_qr", generate_qr_code_with_clients, methods=["GET"]),
     Route("/dummy_login", dummy_login_with_clients, methods=["GET"]),
+    Route("/video_page/{title}", video_page, methods=["GET"]),
     Route("/", homepage),
 ]
 
