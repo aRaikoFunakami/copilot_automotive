@@ -2,30 +2,26 @@ import asyncio
 import uuid
 import logging
 import json
-from typing import Dict
+from typing import Dict, Any
 
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import PromptTemplate
 
-# グローバル管理（モード追加はここだけ）
+from dummy_data.scenario_video import scenario_data
+from agent_video_suggestion_ai import VideoRecommender
+
 AGENT_MODES = ["video", "schedule"]
 
-# SYSTEM PROMPT（エスケープ済み）
 SYSTEM_PROMPT = {
     "video": '''
-あなたは車両内のエンターテイメントアシスタントです。
-ユーザーの好みと現在の状況を考慮し、最適な動画コンテンツを提案してください。
-必ず以下の形式でJSON出力してください。
+You are an in-vehicle entertainment assistant. 
+Analyze the user's preferences and current vehicle conditions, and generate search parameters 
+for the video recommendation engine.
 
-以下のJSON形式で出力してください。
-注意：
-- "viewer_role" は "driver" または "passenger" のどちらかを必ず指定
-- "driving_status" は "manual", "autonomous", "charging" のいずれか
-- "network_condition" は "good" または "poor"
-
-{{
-    "proposal": {{ 
+Output JSON format:
+{
+    "video_search_params": { 
         "max_duration_sec": 1800,
         "viewer_role": "passenger",
         "viewer_age": 28,
@@ -34,61 +30,58 @@ SYSTEM_PROMPT = {
         "driving_status": "autonomous",
         "network_condition": "good",
         "session_id": "abc123xyz789"
-    }}
-}}
-
+    }
+}
 ''',
     "schedule": '''
-あなたはスケジュール管理アシスタントです。
-車両情報とカレンダー予定から遅刻の可能性を判定し、以下の形式でJSON出力してください。
+You are a schedule management assistant. 
+Analyze the vehicle status and calendar events to determine if the user might be late. 
 
-{{
-  "proposal": {{
-    "title": "遅延通知タイトル",
-    "reason": "遅延の理由",
-    "action": "ユーザーへの具体的通知内容"
-  }}
-}}
+Output JSON format:
+{
+  "proposal": {
+    "title": "Late Notification Title",
+    "reason": "Reason for delay",
+    "action": "Specific notification content for the user"
+  }
+}
 '''
 }
 
+
 class AgentDriverAssistAI:
-    """LangChainベースのエージェントマネージャー"""
+    """LangChain-based agent manager"""
 
-    def __init__(self, model_name="gpt-4o-mini"):
+    def __init__(self, model_name: str = "gpt-4o-mini") -> None:
         self.model_name = model_name
-        self.agents: Dict[str, Dict] = {}
+        self.agents: Dict[str, Dict[str, Any]] = {}
 
-    def create_agent(self, thread_id: str = None):
-        if thread_id is None:
-            thread_id = str(uuid.uuid4())
-
+    def create_agent(self, thread_id: str = None) -> str:
+        """Create a new agent with thread ID"""
+        thread_id = thread_id or str(uuid.uuid4())
         if thread_id not in self.agents:
             models = {mode: ChatOpenAI(model_name=self.model_name) for mode in AGENT_MODES}
             self.agents[thread_id] = {"models": models}
-
         return thread_id
 
-    async def run_agent(self, user_data: str, thread_id: str):
+    async def run_agent(self, user_data: str, thread_id: str) -> Dict[str, Any]:
+        """Run agent tasks for all modes and process video recommendation"""
         if thread_id not in self.agents:
             raise ValueError(f"Thread ID {thread_id} not found. Create an agent first.")
 
-        agent_data = self.agents[thread_id]
-        agent_models = agent_data["models"]
-
-        # JSON出力保証パーサー
+        agent_models = self.agents[thread_id]["models"]
         parser = JsonOutputParser()
 
-        chains = {}
-        for mode in AGENT_MODES:
-            prompt = PromptTemplate(
+        chains = {
+            mode: PromptTemplate(
                 template="{system_prompt}\n{format_instructions}\n{user_input}\n",
                 input_variables=["user_input", "system_prompt"],
                 partial_variables={"format_instructions": parser.get_format_instructions()},
-            )
-            chains[mode] = prompt | agent_models[mode] | parser
+            ) | agent_models[mode] | parser
+            for mode in AGENT_MODES
+        }
 
-        # 並列実行
+        # Run both video and schedule concurrently
         tasks = [
             chains[mode].ainvoke({
                 "user_input": user_data,
@@ -97,38 +90,42 @@ class AgentDriverAssistAI:
         ]
         results = await asyncio.gather(*tasks)
 
-        # モードごとに結果整形
-        final_response = {f"{mode}_proposal": result for mode, result in zip(AGENT_MODES, results)}
+        # Store results separately
+        video_response, schedule_response = results
+        final_response = {
+            "video_search_params": video_response,
+            "schedule_proposal": schedule_response
+        }
 
-        # JSONで見やすく出力
+        # Extract video search params and run recommender
+        if "video_search_params" in video_response:
+            recommender = VideoRecommender()
+            video_proposal = await recommender.recommend(video_response["video_search_params"])
+            final_response["video_proposal"] = video_proposal
+
         print(json.dumps(final_response, ensure_ascii=False, indent=2))
         return final_response
 
-    async def run_tasks(self, messages_per_thread: Dict[str, list]):
-        tasks = []
-        for thread_id, messages in messages_per_thread.items():
-            for message in messages:
-                tasks.append(self.run_agent(message, thread_id))
+    async def run_tasks(self, messages_per_thread: Dict[str, list]) -> None:
+        """Batch process for multiple threads and messages"""
+        tasks = [
+            self.run_agent(message, thread_id)
+            for thread_id, messages in messages_per_thread.items()
+            for message in messages
+        ]
         await asyncio.gather(*tasks)
 
-# 車両ステータスサンプルデータ
-from dummy_data.scenario_video import scenario_data
-
-# ダミーのリコメンドエンジン
-from agent_video_suggestion_ai import VideoRecommender
 
 async def main():
+    """Main execution entry"""
     chat_manager = AgentDriverAssistAI()
     thread_id = chat_manager.create_agent("thread_123")
 
-    # 車両情報をそのまま渡す
     for vehicle_status in scenario_data:
         vehicle_status_json = json.dumps(vehicle_status, ensure_ascii=False, indent=2)
         responses = await chat_manager.run_agent(vehicle_status_json, thread_id)
-        recommender = VideoRecommender()
-        recommended_video = await recommender.recommend(responses["video_proposal"]["proposal"])
-        print("Recommended Video (JSON):")
-        print(json.dumps(recommended_video, ensure_ascii=False, indent=2))
+        print("Final Response with Video Proposal:")
+        print(json.dumps(responses, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":
