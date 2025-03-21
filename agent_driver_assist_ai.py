@@ -126,15 +126,21 @@ vehicle_status = {
 '''
 
 from dummy_data.scenario_video import scenario_data
-
+from agent_video_suggestion_ai import VideoRecommender
 
 async def main():
     chat_manager = AgentDriverAssistAI()
     thread_id = chat_manager.create_agent("thread_123")
+
     # 車両情報をそのまま渡す
     for vehicle_status in scenario_data:
         vehicle_status_json = json.dumps(vehicle_status, ensure_ascii=False, indent=2)
-        await chat_manager.run_agent(vehicle_status_json, thread_id)
+        responses = await chat_manager.run_agent(vehicle_status_json, thread_id)
+        recommender = VideoRecommender()
+        recommended_video = await recommender.recommend(responses["video_proposal"]["proposal"])
+        print("Recommended Video (JSON):")
+        print(json.dumps(recommended_video, ensure_ascii=False, indent=2))
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
