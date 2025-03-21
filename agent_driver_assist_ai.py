@@ -101,10 +101,15 @@ class AgentDriverAssistAI:
         if "video_search_params" in video_response:
             recommender = VideoRecommender()
             video_proposal = await recommender.recommend(video_response["video_search_params"])
+            # ここで return_direct を video_proposal レイヤーに追加する
+            if isinstance(video_proposal, dict):
+                video_proposal["return_direct"] = True  # 必ずdict内に格納する
+                video_proposal["type"] = "proposal_video"
             final_response["video_proposal"] = video_proposal
 
-        print(json.dumps(final_response, ensure_ascii=False, indent=2))
-        return final_response
+        final_response_str = json.dumps(final_response, ensure_ascii=False, indent=2)
+        logging.info(final_response_str)
+        return final_response_str
 
     async def run_tasks(self, messages_per_thread: Dict[str, list]) -> None:
         """Batch process for multiple threads and messages"""
@@ -124,8 +129,6 @@ async def main():
     for vehicle_status in scenario_data:
         vehicle_status_json = json.dumps(vehicle_status, ensure_ascii=False, indent=2)
         responses = await chat_manager.run_agent(vehicle_status_json, thread_id)
-        print("Final Response with Video Proposal:")
-        print(json.dumps(responses, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":
