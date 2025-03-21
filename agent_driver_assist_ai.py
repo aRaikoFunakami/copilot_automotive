@@ -29,8 +29,9 @@ Output JSON format:
         "avoid_recently_watched": true,
         "driving_status": "autonomous",
         "network_condition": "good",
-        "session_id": "abc123xyz789"
-    }
+        "session_id": "abc123xyz789",
+        "reason": "Briefly explain why these parameters were chosen based on the user input and conditions."
+    },
 }
 ''',
     "schedule": '''

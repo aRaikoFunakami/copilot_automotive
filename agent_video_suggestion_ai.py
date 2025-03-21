@@ -6,7 +6,7 @@ Response JSON Format Specification:
     "title": str,                  # Title of the recommended video (empty if no recommendation)
     "genre": str,                  # Genre of the recommended video (empty if no recommendation)
     "iframe": str,                 # Embeddable iframe HTML (empty if no recommendation)
-    "reason": str,                 # Reason for recommendation or explanation in Japanese
+    "reason": str,                 # Reason for recommendation or explanation in English
     "data_broken": bool,           # True if input data is invalid or corrupted, False otherwise
     "video_url": str               # URL to access the video page
 }
@@ -71,7 +71,7 @@ If no suitable video is found:
 
 IMPORTANT:
 - Output ONLY pure JSON. DO NOT use ```json or any markdown.
-- reason must be written in Japanese
+- reason must be written in English.
 """
 
 class VideoRecommender:
@@ -132,6 +132,7 @@ class VideoRecommender:
         if response.get("has_recommendation"):
             encoded_title = urllib.parse.quote(response["title"])
             response["video_url"] = f"http://{self.server_ip}:3000/videos/{encoded_title}"
+            response["reason"] = proposal.get("reason", "特に指定はありません。") + response["reason"] 
         else:
             response["video_url"] = ""
 
@@ -147,7 +148,8 @@ async def main():
         "avoid_recently_watched": True,
         "driving_status": "autonomous",
         "network_condition": "good",
-        "session_id": "xyz123abc456"
+        "session_id": "xyz123abc456",
+        "reason": "The vehicle is currently charging, and the battery level is at 35%. The estimated time of arrival (ETA) to your destination is 25 minutes once charging is complete.",
     }
 
     error_proposal = {}

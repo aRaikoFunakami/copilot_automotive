@@ -6,6 +6,7 @@ from typing import Callable, Coroutine, Any
 from agent_driver_assist_ai import AgentDriverAssistAI
 from dummy_data.scenario_video import scenario_data
 from dummy_data.user import user_data as dummy_user_data
+from realtime_api_utils import text_to_realtime_api_json_as_role
 
 ENABLE_DRIVER_ASSIST = True
 STOP_SIGNAL = "__STOP__"  # For graceful shutdown
@@ -122,7 +123,7 @@ async def driver_assist_ai(
         if "user_data" not in vehicle_status or not vehicle_status["user_data"]:
             logging.info("vehicle_status に user_data が無いため、login_user_data を補完します。")      
             if not login_user_data:
-                logging.warning("⚠ login_user_data が空です。補完される user_data がありません。")
+                logging.warning("login_user_data が空です。補完される user_data がありません。")
             else:
                 logging.info("login_user_data : %s", json.dumps(login_user_data, ensure_ascii=False, indent=2))
             vehicle_status["user_data"] = login_user_data
@@ -142,10 +143,19 @@ async def driver_assist_ai(
         if isinstance(video_proposal, dict) and video_proposal.get("return_direct", False):
             logging.info("video_proposal の return_direct フラグ付きのため、クライアントに直接送信します.")
             logging.info("video_proposal : %s", json.dumps(video_proposal, ensure_ascii=False, indent=2))
-            await send_output_chunk(json.dumps(video_proposal, ensure_ascii=False, indent=2))
+            proposal_to_client = json.dumps(video_proposal, ensure_ascii=False, indent=2)
+            await send_output_chunk(proposal_to_client)
 
-        # Always put result to output queue (so test can proceed)
-        #await output_queue.put(proposal_result)
+            video_summary_for_ai = (
+                f"以下のような理由から、この動画を選びました。\n\n"
+                f"【タイトル】{video_proposal['title']}\n"
+                f"【ジャンル】{video_proposal['genre']}\n"
+                f"【選定理由】{video_proposal['reason']}\n\n"
+                "この内容を、簡潔にまとめ、自然な日本語でユーザーに説明する形式で返答してください。"
+            )
+            await output_queue.put(text_to_realtime_api_json_as_role("user", video_summary_for_ai))
+        else:
+            await output_queue.put(text_to_realtime_api_json_as_role("system", proposal_result))
 
 #
 # Test code
