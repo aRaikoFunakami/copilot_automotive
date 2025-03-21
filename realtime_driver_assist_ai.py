@@ -1,7 +1,10 @@
 import json
 import logging
 import asyncio
+from typing import Dict, Any
+
 from agent_driver_assist_ai import AgentDriverAssistAI
+from dummy_data.scenario_video import scenario_data  # ダミーデータ読み込み
 
 ENABLE_DRIVER_ASSIST = True
 
@@ -11,16 +14,16 @@ def is_valid_json_format(data: dict) -> bool:
 
 async def driver_assist_ai(ai_input_queue: asyncio.Queue, output_queue: asyncio.Queue):
     """Process valid JSON data and generate AI-based suggestions."""
-    driver_assist_ai = AgentDriverAssistAI()
-    driver_assist_ai_thread = driver_assist_ai.create_agent()
-    logging.info(f"Driver Assist AI thread created: {driver_assist_ai_thread}")
+    driver_assist = AgentDriverAssistAI()
+    driver_assist_thread = driver_assist.create_agent()
+    logging.info(f"Driver Assist AI thread created: {driver_assist_thread}")
 
     async def ai_generate_suggestions(data: dict) -> str:
         """Generate AI suggestions and return them as a string."""
         logging.info(f"Processing vehicle data:\n{json.dumps(data, indent=2, ensure_ascii=False)}")
-        formatted_message = json.dumps(data)
-        suggestion = await driver_assist_ai.run_agent(formatted_message, driver_assist_ai_thread)
-        logging.info(f"AI Suggestion: {suggestion}")
+        formatted_message = json.dumps(data, ensure_ascii=False)
+        suggestion = await driver_assist.run_agent(formatted_message, driver_assist_thread)
+        logging.info(f"AI Suggestion: {json.dumps(suggestion, ensure_ascii=False, indent=2)}")
         return suggestion if suggestion else "No suggestion generated."
 
     while True:
@@ -54,50 +57,53 @@ async def driver_assist_ai(ai_input_queue: asyncio.Queue, output_queue: asyncio.
         # Generate AI suggestion
         suggestion = await ai_generate_suggestions(parsed_data)
         await output_queue.put(suggestion)
-        logging.info(f"Added AI-generated suggestion to output_queue: {suggestion}")
+        logging.info(f"Added AI-generated suggestion to output_queue.")
 
-
-### TEST ###
-from agent_driver_assist_ai import AgentDriverAssistAI
-from dummy_data.scenario_video import scenario_data  # ダミーデータ読み込み
-
-async def test_driver_assist_with_scenario_data():
+#
+# テスト用のコード
+#
+async def test_driver_assist_ai():
     """
-    scenario_data を読み込み、AIへ送信し、video_proposal と schedule_proposal を取得して表示
+    1) driver_assist_ai タスクを起動
+    2) scenario_data の各シナリオをキューに投入
+    3) 出力キューから結果を取り出して表示
     """
-    # AIエージェント初期化
-    agent = AgentDriverAssistAI()
-    thread_id = agent.create_agent("scenario_test_thread")
+    ai_input_queue = asyncio.Queue()
+    output_queue = asyncio.Queue()
 
-    # シナリオごとにループ
+    # Start the driver_assist_ai in the background
+    driver_assist_task = asyncio.create_task(driver_assist_ai(ai_input_queue, output_queue))
+
+    # Send each scenario from scenario_data
     for idx, scenario in enumerate(scenario_data):
-        print(f"\n✅ Scenario {idx + 1}: {scenario['scenario']}")
-
-        # AIに渡すvehicle_status形式に変換
+        print(f"\n✅ Sending Scenario {idx+1}: {scenario['scenario']}")
         vehicle_status = {
             "type": "vehicle_status",
             "vehicle_data": scenario["vehicle_data"],
             "user_data": scenario["user_data"]
         }
+        # Put the JSON string of vehicle status into the queue
+        await ai_input_queue.put(json.dumps(vehicle_status, ensure_ascii=False))
 
-        # JSON化してLangChain AIに渡す
-        vehicle_status_json = json.dumps(vehicle_status, ensure_ascii=False, indent=2)
+        # Wait for the AI output from the output queue
+        suggestion = await output_queue.get()
 
-        try:
-            result = await agent.run_agent(vehicle_status_json, thread_id)
-        except Exception as e:
-            print(f"❌ AI processing failed for Scenario {idx + 1}: {e}")
-            continue
+        # Print the result (video_proposal / schedule_proposal etc.)
+        print(f"AI Output for Scenario {idx+1}:\n{json.dumps(suggestion, ensure_ascii=False, indent=2)}")
 
-        # 出力結果確認（AIからのvideo_proposal / schedule_proposalを表示）
-        print(json.dumps(result, ensure_ascii=False, indent=2))
+    # Cancel driver_assist_ai task after all scenarios are processed
+    driver_assist_task.cancel()
+    try:
+        await driver_assist_task
+    except asyncio.CancelledError:
+        pass
+
 
 if __name__ == "__main__":
-    # ログ出力設定
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(levelname)s - %(message)s"
     )
 
-    # 非同期テスト実行
-    asyncio.run(test_driver_assist_with_scenario_data())
+    # Run the test
+    asyncio.run(test_driver_assist_ai())
