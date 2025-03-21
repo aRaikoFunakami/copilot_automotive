@@ -36,6 +36,7 @@ async def driver_assist_ai(
     logging.info(f"Driver Assist AI thread created: {driver_assist_thread}")
 
     login_user_data = {}
+    previous_data = None  # 前回データ保持
 
     async def ai_generate_suggestions(data: dict) -> str:
         """
@@ -70,6 +71,12 @@ async def driver_assist_ai(
             logging.info("Stop signal received. Exiting driver_assist_ai loop.")
             break
 
+        # 前回と同じデータならスキップ
+        if incoming_data == previous_data:
+            logging.info("同一データ受信のためスキップします。")
+            continue
+        previous_data = incoming_data
+
         if not ENABLE_DRIVER_ASSIST:
             logging.info("Driver assist is disabled. Skipping processing.")
             continue
@@ -90,10 +97,16 @@ async def driver_assist_ai(
             continue
 
         if parsed_data.get("type") == "login_notice":
-            # login_notice processing
             user_name = parsed_data.get("user_name")
-            if user_name in dummy_user_data:
-                login_user_data = dummy_user_data[user_name]
+            user_lookup = dummy_user_data.get(user_name)
+
+            # エイリアス解決
+            if isinstance(user_lookup, str):
+                # エイリアスなら本体参照
+                user_lookup = dummy_user_data.get(user_lookup)
+
+            if isinstance(user_lookup, dict):
+                login_user_data = user_lookup
                 logging.info(f"User data loaded for {user_name}: {json.dumps(login_user_data, ensure_ascii=False, indent=2)}")
             else:
                 logging.warning(f"User name {user_name} not found in dummy data.")
