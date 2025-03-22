@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube Demo Fullscreen</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #000;
+    }
+    #videoContainer {
+      width: 100%;
+      height: 100%;
+    }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="videoContainer"></div>
+
+  <script>
+    // URLのパスからactionを取得
+    const path = window.location.pathname;
+    const action = path.split('/').pop();
+
+    // YouTube動画マッピング（playlist対応）
+    const videoMap = {
+      start_autonomous: "GCpwiGY57JI",
+      start_ev_charge: "HBQ6rflrjQc"
+    };
+
+    const videoId = videoMap[action];
+    const container = document.getElementById("videoContainer");
+
+    if (videoId) {
+      const iframe = document.createElement('iframe');
+      iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}`;
+      iframe.allow = "autoplay; fullscreen; encrypted-media; ";
+      iframe.referrerPolicy = "strict-origin-when-cross-origin";
+      iframe.allowFullscreen = true;
+      container.appendChild(iframe);
+    } else {
+      container.innerHTML = "<h2>Invalid demo action.</h2>";
+    }
+  </script>
+</body>
+</html>
