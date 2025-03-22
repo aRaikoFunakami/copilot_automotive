@@ -7,18 +7,20 @@ from pathlib import Path
 
 connected_clients = set()
 
-# ✅ HTML表示エンドポイント
+# HTML表示エンドポイント
 async def dummy_login_page(request):
     html_path = Path(__file__).parent / "static" / "dummy_login.html"
     if html_path.exists():
         return FileResponse(html_path)
     return HTMLResponse("<h2>Template not found.</h2>", status_code=404)
 
-# ✅ WebSocketエンドポイント
+### TEST ###
+
+# WebSocketエンドポイント
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     connected_clients.add(websocket)
-    print("✅ WebSocket Connected")
+    print("WebSocket Connected")
     try:
         while True:
             data = await websocket.receive_text()
@@ -33,7 +35,7 @@ async def websocket_endpoint(websocket: WebSocket):
         await websocket.close()
         print("🚪 WebSocket Disconnected")
 
-# ✅ ルーティング
+# ルーティング
 app = Starlette(debug=True, routes=[
     Route("/dummy_login", dummy_login_page),
     WebSocketRoute("/ws", websocket_endpoint),  # WebSocket対応
