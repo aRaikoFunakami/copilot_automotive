@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Login with Demo</title>
+  <script src="https://unpkg.com/i18next@latest/dist/umd/i18next.min.js"></script>
+  <style>
+    /* デザインは前回通り */
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
+    body { height: 100vh; background: linear-gradient(135deg, #1f1c2c, #928dab); display: flex; align-items: center; justify-content: center; color: #fff; }
+    .container { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); border-radius: 20px; padding: 30px; max-width: 480px; width: 90%; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37); text-align: center; animation: fadeIn 1.2s ease forwards; }
+    h2 { font-size: 28px; margin-bottom: 25px; letter-spacing: 1.5px; }
+    .section-title { font-size: 20px; margin-bottom: 15px; color: #ffe58a; border-bottom: 2px solid #ffe58a; padding-bottom: 8px; }
+    .lang-selection { display: flex; justify-content: space-around; margin-bottom: 30px; background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 15px; border: 1px solid #fff; }
+    .name-selection, .demo-selection { background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 15px; border: 1px solid #fff; margin-bottom: 20px; }
+    .lang-button, .button, .demo-button { padding: 12px 20px; font-size: 16px; border: none; border-radius: 50px; cursor: pointer; transition: transform 0.3s ease, background 0.3s ease; background: linear-gradient(45deg, #ff6ec4, #7873f5); color: #fff; box-shadow: 0 4px 15px rgba(255, 110, 196, 0.5); }
+    .lang-button:hover, .button:hover, .demo-button:hover { transform: translateY(-5px) scale(1.05); background: linear-gradient(45deg, #7873f5, #ff6ec4); }
+    .button, .demo-button { width: 80%; margin: 12px auto; display: block; font-size: 18px; }
+    #status { margin-top: 20px; font-size: 18px; font-weight: bold; color: #ffdc60; min-height: 24px; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2 id="title">ログインを選択してください</h2>
+
+    <!-- 言語切替 -->
+    <div id="lang-title" class="section-title">言語選択</div>
+    <div class="lang-selection">
+      <button class="lang-button" onclick="changeLanguage('en')">English</button>
+      <button class="lang-button" onclick="changeLanguage('ja')">日本語</button>
+    </div>
+
+    <!-- 名前 -->
+    <div id="name-title" class="section-title">名前を選んでログイン</div>
+    <div class="name-selection">
+      <button id="btn1" class="button" onclick="sendLogin(0)">たけし</button>
+      <button id="btn2" class="button" onclick="sendLogin(1)">あきこ</button>
+      <button id="btn3" class="button" onclick="sendLogin(2)">こたろう</button>
+    </div>
+
+    <!-- デモ -->
+    <div id="demo-title" class="section-title">デモ操作</div>
+    <div class="demo-selection">
+      <button id="demo1" class="demo-button" onclick="sendDemo('start_autonomous')">自動運転開始</button>
+      <button id="demo2" class="demo-button" onclick="sendDemo('start_ev_charge')">EV充電開始</button>
+    </div>
+
+    <p id="status"></p>
+  </div>
+
+  <script>
+    let ws;
+    let clientId;
+    let lang = "ja";
+
+    const resources = {
+      en: {
+        translation: {
+          "title": "Select Your Login",
+          "login": "Logging in...",
+          "success": " logged in successfully.",
+          "names": ["Takeshi", "Akiko", "Kotaro"],
+          "message": "My name is {{name}}.",
+          "lang_title": "Language Selection",
+          "name_title": "Select Name to Login",
+          "demo_title": "Demo Actions",
+          "demo_autonomous": "Start Autonomous Driving",
+          "demo_ev": "Start EV Charging"
+        }
+      },
+      ja: {
+        translation: {
+          "title": "ログインを選択してください",
+          "login": "ログインしています...",
+          "success": " でログインしました。",
+          "names": ["たけし", "あきこ", "こたろう"],
+          "message": "私の名前は{{name}}です。",
+          "lang_title": "言語選択",
+          "name_title": "名前を選んでログイン",
+          "demo_title": "デモ操作",
+          "demo_autonomous": "自動運転開始",
+          "demo_ev": "EV充電開始"
+        }
+      }
+    };
+
+    window.onload = function () {
+      const params = new URLSearchParams(window.location.search);
+      clientId = params.get('client_id') || 'default_client';
+      const serverIp = window.location.hostname;
+      ws = new WebSocket(`ws://${serverIp}:3000/ws`);
+
+      ws.onopen = () => console.log("WebSocket connected.");
+      ws.onmessage = (e) => document.getElementById("status").innerText = e.data;
+      ws.onclose = () => console.log("WebSocket closed.");
+
+      i18next.init({ lng: lang, resources }, () => updateLanguage());
+    };
+
+    function sendLogin(index) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        document.getElementById("status").innerText = "WebSocket connection error.";
+        return;
+      }
+      const nameArr = i18next.t("names", { returnObjects: true });
+      const name = nameArr[index];
+      document.getElementById("status").innerText = i18next.t("login");
+
+      const message = {
+        type: "dummy_login",
+        target_id: clientId,
+        message: i18next.t("message", { name }),
+        user_name: name,
+        lang: lang,
+      };
+      ws.send(JSON.stringify(message));
+
+      setTimeout(() => {
+        document.getElementById("status").innerText = name + i18next.t("success");
+      }, 1500);
+    }
+
+    function sendDemo(action) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        document.getElementById("status").innerText = "WebSocket connection error.";
+        return;
+      }
+      const message = {
+        type: "demo_action",
+        target_id: clientId,
+        action: action,
+        lang: lang,
+      };
+      ws.send(JSON.stringify(message));
+      document.getElementById("status").innerText = "デモ送信: " + action;
+    }
+
+    function changeLanguage(selectedLang) {
+      lang = selectedLang;
+      i18next.changeLanguage(lang, updateLanguage);
+    }
+
+    function updateLanguage() {
+      document.getElementById("title").innerText = i18next.t("title");
+      document.getElementById("lang-title").innerText = i18next.t("lang_title");
+      document.getElementById("name-title").innerText = i18next.t("name_title");
+      document.getElementById("demo-title").innerText = i18next.t("demo_title");
+
+      const nameArr = i18next.t("names", { returnObjects: true });
+      document.getElementById("btn1").innerText = nameArr[0];
+      document.getElementById("btn2").innerText = nameArr[1];
+      document.getElementById("btn3").innerText = nameArr[2];
+
+      document.getElementById("demo1").innerText = i18next.t("demo_autonomous");
+      document.getElementById("demo2").innerText = i18next.t("demo_ev");
+    }
+  </script>
+</body>
+</html>
