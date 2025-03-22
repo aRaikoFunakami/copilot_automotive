@@ -1,24 +1,121 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Smart Login with Demo</title>
   <script src="https://unpkg.com/i18next@latest/dist/umd/i18next.min.js"></script>
   <style>
-    /* デザインは前回通り */
-    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Poppins', sans-serif; }
-    body { height: 100vh; background: linear-gradient(135deg, #1f1c2c, #928dab); display: flex; align-items: center; justify-content: center; color: #fff; }
-    .container { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); border-radius: 20px; padding: 30px; max-width: 480px; width: 90%; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37); text-align: center; animation: fadeIn 1.2s ease forwards; }
-    h2 { font-size: 28px; margin-bottom: 25px; letter-spacing: 1.5px; }
-    .section-title { font-size: 20px; margin-bottom: 15px; color: #ffe58a; border-bottom: 2px solid #ffe58a; padding-bottom: 8px; }
-    .lang-selection { display: flex; justify-content: space-around; margin-bottom: 30px; background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 15px; border: 1px solid #fff; }
-    .name-selection, .demo-selection { background: rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 15px; border: 1px solid #fff; margin-bottom: 20px; }
-    .lang-button, .button, .demo-button { padding: 12px 20px; font-size: 16px; border: none; border-radius: 50px; cursor: pointer; transition: transform 0.3s ease, background 0.3s ease; background: linear-gradient(45deg, #ff6ec4, #7873f5); color: #fff; box-shadow: 0 4px 15px rgba(255, 110, 196, 0.5); }
-    .lang-button:hover, .button:hover, .demo-button:hover { transform: translateY(-5px) scale(1.05); background: linear-gradient(45deg, #7873f5, #ff6ec4); }
-    .button, .demo-button { width: 80%; margin: 12px auto; display: block; font-size: 18px; }
-    #status { margin-top: 20px; font-size: 18px; font-weight: bold; color: #ffdc60; min-height: 24px; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Poppins', sans-serif;
+    }
+
+    body {
+      height: 100vh;
+      background: linear-gradient(135deg, #1f1c2c, #928dab);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(20px);
+      border-radius: 20px;
+      padding: 30px;
+      max-width: 480px;
+      width: 90%;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+      text-align: center;
+      animation: fadeIn 1.2s ease forwards;
+    }
+
+    h2 {
+      font-size: 28px;
+      margin-bottom: 25px;
+      letter-spacing: 1.5px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      margin-bottom: 15px;
+      color: #ffe58a;
+      border-bottom: 2px solid #ffe58a;
+      padding-bottom: 8px;
+    }
+
+    .lang-selection {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 30px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 15px;
+      border: 1px solid #fff;
+    }
+
+    .name-selection,
+    .demo-selection {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 15px;
+      border: 1px solid #fff;
+      margin-bottom: 20px;
+    }
+
+    .lang-button,
+    .button,
+    .demo-button {
+      padding: 12px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: transform 0.3s ease, background 0.3s ease;
+      background: linear-gradient(45deg, #ff6ec4, #7873f5);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(255, 110, 196, 0.5);
+    }
+
+    .lang-button:hover,
+    .button:hover,
+    .demo-button:hover {
+      transform: translateY(-5px) scale(1.05);
+      background: linear-gradient(45deg, #7873f5, #ff6ec4);
+    }
+
+    .button,
+    .demo-button {
+      width: 80%;
+      margin: 12px auto;
+      display: block;
+      font-size: 18px;
+    }
+
+    #status {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #ffdc60;
+      min-height: 24px;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-30px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
   </style>
 </head>
 
@@ -26,14 +123,12 @@
   <div class="container">
     <h2 id="title">ログインを選択してください</h2>
 
-    <!-- 言語切替 -->
     <div id="lang-title" class="section-title">言語選択</div>
     <div class="lang-selection">
       <button class="lang-button" onclick="changeLanguage('en')">English</button>
       <button class="lang-button" onclick="changeLanguage('ja')">日本語</button>
     </div>
 
-    <!-- 名前 -->
     <div id="name-title" class="section-title">名前を選んでログイン</div>
     <div class="name-selection">
       <button id="btn1" class="button" onclick="sendLogin(0)">たけし</button>
@@ -41,7 +136,6 @@
       <button id="btn3" class="button" onclick="sendLogin(2)">こたろう</button>
     </div>
 
-    <!-- デモ -->
     <div id="demo-title" class="section-title">デモ操作</div>
     <div class="demo-selection">
       <button id="demo1" class="demo-button" onclick="sendDemo('start_autonomous')">自動運転開始</button>
@@ -90,8 +184,15 @@
     window.onload = function () {
       const params = new URLSearchParams(window.location.search);
       clientId = params.get('client_id') || 'default_client';
-      const serverIp = window.location.hostname;
-      ws = new WebSocket(`ws://${serverIp}:3000/ws`);
+
+      // Auto-detect ws or wss based on the page protocol
+      const wsProtocol = (window.location.protocol === 'https:') ? 'wss://' : 'ws://';
+
+      // Use location.host to dynamically handle domain and port
+      const serverHost = window.location.host;
+
+      // Create WebSocket connection
+      ws = new WebSocket(`${wsProtocol}${serverHost}/ws`);
 
       ws.onopen = () => console.log("WebSocket connected.");
       ws.onmessage = (e) => document.getElementById("status").innerText = e.data;
@@ -159,4 +260,5 @@
     }
   </script>
 </body>
+
 </html>
