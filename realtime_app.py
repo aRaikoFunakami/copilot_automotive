@@ -51,70 +51,74 @@ async def websocket_endpoint(websocket: WebSocket):
 
         async def client_stream():
             """Receives data from the WebSocket client and processes messages."""
-            async for message in websocket_stream(websocket):
-                try:
-                    data = json.loads(message)
-                except json.JSONDecodeError:
-                    message = text_to_realtime_api_json_as_role("user", message)
-                    await input_queue.put(message)
-                    continue
-  
+            try:
+                async for message in websocket_stream(websocket):
+                    try:
+                        data = json.loads(message)
+                    except json.JSONDecodeError:
+                        message = text_to_realtime_api_json_as_role("user", message)
+                        await input_queue.put(message)
+                        continue
+    
 
-                if not isinstance(data, dict) or "type" not in data:
-                    logging.warning("Received malformed JSON data.")
-                    await websocket.send_text(json.dumps({"error": "Malformed data"}))
-                    continue
+                    if not isinstance(data, dict) or "type" not in data:
+                        logging.warning("Received malformed JSON data.")
+                        await websocket.send_text(json.dumps({"error": "Malformed data"}))
+                        continue
 
-                data_type = data.get("type")
-                logging.info(f"Received data_type: {data_type}")
+                    data_type = data.get("type")
+                    logging.info(f"Received data_type: {data_type}")
 
-                if data_type == "dummy_login":
-                    # Forward message to target client
-                    target_id = data.get("target_id")
-                    msg_content = data.get("message")
-                    user_name = data.get("user_name")
-                    lang = data.get("lang")
+                    if data_type == "dummy_login":
+                        # Forward message to target client
+                        target_id = data.get("target_id")
+                        msg_content = data.get("message")
+                        user_name = data.get("user_name")
+                        lang = data.get("lang")
 
-                    if target_id in connected_clients:
-                        logging.info(f"Received message: target_id:{target_id}, mas_content:{msg_content}, user_name:{user_name}, lang:{lang}")
-                        connected_clients[target_id]["user_name"] = user_name
-                        connected_clients[target_id]["lang"] = lang
-                        msg_login_notice = {
-                            "type": "login_notice",
-                            "user_name": user_name,
-                            "lang": lang,
-                        }
-                        await connected_clients[target_id]["ai_input_queue"].put(json.dumps(msg_login_notice))
+                        if target_id in connected_clients:
+                            logging.info(f"Received message: target_id:{target_id}, mas_content:{msg_content}, user_name:{user_name}, lang:{lang}")
+                            connected_clients[target_id]["user_name"] = user_name
+                            connected_clients[target_id]["lang"] = lang
+                            msg_login_notice = {
+                                "type": "login_notice",
+                                "user_name": user_name,
+                                "lang": lang,
+                            }
+                            await connected_clients[target_id]["ai_input_queue"].put(json.dumps(msg_login_notice))
 
-                        logging.info(f"Forwarding message to {target_id}: {msg_content} ")
-                        msg_content = text_to_realtime_api_json_as_role("user", msg_content)
-                        await connected_clients[target_id]["input_queue"].put(msg_content)
+                            logging.info(f"Forwarding message to {target_id}: {msg_content} ")
+                            msg_content = text_to_realtime_api_json_as_role("user", msg_content)
+                            await connected_clients[target_id]["input_queue"].put(msg_content)
+                        else:
+                            logging.warning(f"Target client {target_id} not found.")
+                            await websocket.send_text(json.dumps({"error": "Target client not found"}))
+                    elif data_type == "demo_action":
+                        target_id = data.get("target_id")
+                        if target_id in connected_clients:
+                            action = data.get("action")
+                            server_ip = get_local_ip()
+                            video_url = f"http://{server_ip}:3000/demo_action/{action}"
+                            data["video_url"] = video_url
+
+                            action_str = json.dumps(data, ensure_ascii=False, indent=2)
+                            logging.info(f"Send message to client: {action_str}")
+
+                            target_id_websocket = connected_clients[target_id]["websocket"]
+                            await target_id_websocket.send_text(action_str)
+                        else:
+                            logging.warning(f"Target client {target_id} not found.")
+                            await websocket.send_text(json.dumps({"error": "Target client not found"}))
+                    elif data_type == "vehicle_status":
+                        await ai_input_queue.put(message)
+                        await input_queue.put(text_to_realtime_api_json_as_role("system", json.dumps(data))) # str to dumps あとで確認する
                     else:
-                        logging.warning(f"Target client {target_id} not found.")
-                        await websocket.send_text(json.dumps({"error": "Target client not found"}))
-                elif data_type == "demo_action":
-                    target_id = data.get("target_id")
-                    if target_id in connected_clients:
-                        action = data.get("action")
-                        server_ip = get_local_ip()
-                        video_url = f"http://{server_ip}:3000/demo_action/{action}"
-                        data["video_url"] = video_url
-
-                        action_str = json.dumps(data, ensure_ascii=False, indent=2)
-                        logging.info(f"Send message to client: {action_str}")
-
-                        target_id_websocket = connected_clients[target_id]["websocket"]
-                        await target_id_websocket.send_text(action_str)
-                    else:
-                        logging.warning(f"Target client {target_id} not found.")
-                        await websocket.send_text(json.dumps({"error": "Target client not found"}))
-                elif data_type == "vehicle_status":
-                    await ai_input_queue.put(message)
-                    await input_queue.put(text_to_realtime_api_json_as_role("system", json.dumps(data))) # str to dumps あとで確認する
-                else:
-                    # Store valid JSON messages in the input queue and ai_input_queue
-                    await input_queue.put(message)
-                    
+                        # Store valid JSON messages in the input queue and ai_input_queue
+                        await input_queue.put(message)
+            except Exception as e:
+                logging.error(f"WebSocket receive error: {e}")
+                raise
+                        
 
         async def merged_stream():
             """Continuously retrieves data from input_queue and sends it to the client."""
