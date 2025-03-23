@@ -69,16 +69,21 @@ async def websocket_endpoint(websocket: WebSocket):
             """Receives data from the WebSocket client and processes messages."""
             try:
                 async for message in websocket_stream(websocket):
-                    logging.info(f"Received message: {message}")
+                    # WebSocketがまだ有効かチェック（重要）
+                    if websocket.application_state != WebSocketState.CONNECTED:
+                        logging.error(f"WebSocket not connected. client_id: {client_id}")
+                        break  # ここでストリーム終了させる
+
+                    # logging.info(f"Received message: {message[:100]}")
                     try:
-                        logging.info(f"try json load: {message}")
+                        # logging.info(f"try json load: {message[:100]}")
                         data = json.loads(message)
                     except json.JSONDecodeError:
                         message = text_to_realtime_api_json_as_role("user", message)
                         await input_queue.put(message)
                         continue
     
-                    logging.info(f"Received data: {json.dumps(data, ensure_ascii=False, indent=2)}")
+                    # logging.info(f"Received data: {json.dumps(data, ensure_ascii=False, indent=2)[:100]}")
                     if not isinstance(data, dict) or "type" not in data:
                         logging.warning("Received malformed JSON data.")
                         await websocket.send_text(json.dumps({"error": "Malformed data"}))
@@ -132,7 +137,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             await target_id_input_queue.put(text_to_realtime_api_json_as_role("user", f"{action_str}モードになりました。とユーザーに通知してください。")) 
 
                             # クライアント側でのダミー動画を再生後しばらくたって提案がくるようにする
-                            await asyncio.sleep(6)
+                            await asyncio.sleep(4)
                             # AIにダミーのvehicle_statusを渡す
                             vehicle_data = get_vehicle_data_by_scenario(action)
 
