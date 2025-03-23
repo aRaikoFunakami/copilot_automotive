@@ -151,19 +151,21 @@ async def driver_assist_ai(
             proposal_to_client = json.dumps(video_proposal, ensure_ascii=False, indent=2)
             await send_output_chunk(proposal_to_client)
 
-            video_summary_for_ai = (
-                f"I selected this video for the following reasons:\n\n"
-                f"【Title】{video_proposal['title']}\n"
-                f"【Genre】{video_proposal['genre']}\n"
-                f"【Reason】{video_proposal['reason']}\n\n"
-                f"Please explain the recommendation to the user in natural language.\n"
-                f"Start your explanation by mentioning that this video was recommended because the vehicle is currently in autonomous driving mode, "
-                f"which allows the user to safely enjoy video content during the ride.\n"
-                f"Then, explain the other reasons for this recommendation based on the 'Reason' above, "
-                f"such as matching the user's preferences (documentary, science, travel), fitting the ride time, and ensuring smooth streaming conditions.\n"
-                f"Finally, briefly summarize the video content and introduce the title naturally at the end.\n"
-                f"Respond in the language specified by '{user_lang}'."
-            )
+            video_summary_for_ai = f"""
+                Read the data below and briefly explain:
+                1. Why is now a safe and good timing to suggest the video? (e.g., because the car is in autonomous driving mode or charging, so it’s safe to recommend content now)
+                2. What kind of content is this video, and why is it a good fit for the user?
+
+                # Data:
+                Title: {video_proposal['title']}
+                Genre: {video_proposal['genre']}
+                Reason: {video_proposal['reason']}
+
+                Make it sound natural, like you're recommending it because you think the timing and content are just right.
+                Keep your answer concise.
+                Respond in the language specified by '{user_lang}'. 
+                """
+            #video_summary_for_ai = "hello"
             await output_queue.put(text_to_realtime_api_json_as_role("user", video_summary_for_ai))
         else:
             await output_queue.put(text_to_realtime_api_json_as_role("system", proposal_result))
