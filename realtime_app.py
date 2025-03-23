@@ -126,10 +126,13 @@ async def websocket_endpoint(websocket: WebSocket):
 
                             # クライアント側でダミー動画を再生する
                             target_id_websocket = connected_clients[target_id]["websocket"]
-                            #target_id_input_queue = connected_clients[target_id]["input_queue"]
+                            target_id_input_queue = connected_clients[target_id]["input_queue"]
                             target_id_ai_input_queue = connected_clients[target_id]["ai_input_queue"]
                             await target_id_websocket.send_text(action_str)
+                            await target_id_input_queue.put(text_to_realtime_api_json_as_role("user", f"{action_str}モードになりました。とユーザーに通知してください。")) 
 
+                            # クライアント側でのダミー動画を再生後しばらくたって提案がくるようにする
+                            await asyncio.sleep(6)
                             # AIにダミーのvehicle_statusを渡す
                             vehicle_data = get_vehicle_data_by_scenario(action)
 
