@@ -69,14 +69,16 @@ async def websocket_endpoint(websocket: WebSocket):
             """Receives data from the WebSocket client and processes messages."""
             try:
                 async for message in websocket_stream(websocket):
+                    logging.info(f"Received message: {message}")
                     try:
+                        logging.info(f"try json load: {message}")
                         data = json.loads(message)
                     except json.JSONDecodeError:
                         message = text_to_realtime_api_json_as_role("user", message)
                         await input_queue.put(message)
                         continue
     
-
+                    logging.info(f"Received data: {json.dumps(data, ensure_ascii=False, indent=2)}")
                     if not isinstance(data, dict) or "type" not in data:
                         logging.warning("Received malformed JSON data.")
                         await websocket.send_text(json.dumps({"error": "Malformed data"}))
