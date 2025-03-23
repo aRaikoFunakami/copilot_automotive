@@ -1,6 +1,16 @@
-- ビデオProposalのときに喋るようにする
+- [x] ビデオProposalのときに喋るようにする
   
 - シナリオ切り替え
-  - QRコードだすときにリング渡す
-  - リンクでシナリオ切り替えページを表示させる
+  - [x]ユーザー切り替えページにデモ切り替えを追加する
   - そこからシナリオ切り替える（ログインのときと同じ仕組み）
+    - [x] realtime_app.py で demo_action を受け取るとクライアントにそのデータを転送する
+    - [ ] 転送と平行してにそのactionにあったダミーデータをアシストAIにわたす
+    - [ ] クライアントは demo_action を受け取ると、
+      - [ ] Intent で demo_template を見に行かせる
+        - [ ] Demo Page: http://localhost:3000/demo_action/start_autonomous
+        - [ ] Demo Page: http://localhost:3000/demo_action/start_ev_charge
+    - [ ] クライアント側ではデモ時のダミーデータは扱わない
+- [ ] 動画表示のアップデート
+  - [ ] 動画表示中は音声入力を切る
+  - [ ] 動画表示のChromeがKILLされたら音声入力を入れる
+  - [ ] 動画表示以外の場合は音声入力を入れたまま

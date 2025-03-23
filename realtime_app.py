@@ -16,7 +16,7 @@ from realtime_tools import TOOLS
 from realtime_prompt import INSTRUCTIONS
 from realtime_driver_assist_ai import driver_assist_ai
 from generate_qr_code import generate_qr_code
-from dummy_login import dummy_login
+from dummy_login import dummy_login_page, demo_action_page
 from network_utils import get_local_ip
 from page_video import page_video
 from realtime_api_utils import text_to_realtime_api_json_as_role
@@ -92,6 +92,22 @@ async def websocket_endpoint(websocket: WebSocket):
                     else:
                         logging.warning(f"Target client {target_id} not found.")
                         await websocket.send_text(json.dumps({"error": "Target client not found"}))
+                elif data_type == "demo_action":
+                    target_id = data.get("target_id")
+                    if target_id in connected_clients:
+                        action = data.get("action")
+                        server_ip = get_local_ip()
+                        video_url = f"http://{server_ip}:3000/demo_action/{action}"
+                        data["video_url"] = video_url
+
+                        action_str = json.dumps(data, ensure_ascii=False, indent=2)
+                        logging.info(f"Send message to client: {action_str}")
+
+                        target_id_websocket = connected_clients[target_id]["websocket"]
+                        await target_id_websocket.send_text(action_str)
+                    else:
+                        logging.warning(f"Target client {target_id} not found.")
+                        await websocket.send_text(json.dumps({"error": "Target client not found"}))
                 elif data_type == "vehicle_status":
                     await ai_input_queue.put(message)
                     await input_queue.put(text_to_realtime_api_json_as_role("system", json.dumps(data))) # str to dumps あとで確認する
@@ -114,7 +130,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
         # driver_assist_aiへのコールバック渡し（リアルタイム送信用）
         async def send_ai_output_to_client(suggestion: str):
-            logging.info(f"📤 Sending AI driver assist direct output to client {client_id}")
+            logging.info(f"Sending AI driver assist direct output to client {client_id}")
             await websocket.send_text(suggestion)
 
         # AIドライバーアシスト起動（send_output_chunk対応）
@@ -162,13 +178,18 @@ async def dummy_login_with_clients(request):
     client_id = request.query_params.get("client_id")
     if not client_id:
         return JSONResponse({"error": "Missing client_id parameter"}, status_code=400)
-    return await dummy_login(request, connected_clients)
+    
+    if not client_id or client_id not in connected_clients:
+        return HTMLResponse("<h2>Invalid client ID</h2>", status_code=400)
+    
+    return await dummy_login_page(request)
 
 # Define application routes
 routes = [
     WebSocketRoute("/ws", websocket_endpoint),
     Route("/generate_qr", generate_qr_code_with_clients, methods=["GET"]),
     Route("/dummy_login", dummy_login_with_clients, methods=["GET"]),
+    Route("/demo_action/{action}", demo_action_page),
     Route("/videos/{title}", page_video, methods=["GET"]),
     Route("/", homepage),
 ]
