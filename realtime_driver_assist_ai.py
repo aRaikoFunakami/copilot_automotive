@@ -36,8 +36,10 @@ async def driver_assist_ai(
     driver_assist_thread = driver_assist.create_agent()
     logging.info(f"Driver Assist AI thread created: {driver_assist_thread}")
 
-    login_user_data = {}
+    # デフォルトユーザー情報を最初に読み込む
     user_lang = "ja"  # デフォルト言語（例：日本語）
+    user_name = "Takeshi"  # デフォルトユーザー名
+    login_user_data = dummy_user_data.get(user_name, {})  # デフォルトの user_data を取得
     previous_data = None  # 前回データ保持
 
 
@@ -100,8 +102,8 @@ async def driver_assist_ai(
             continue
 
         if parsed_data.get("type") == "login_notice":
-            user_lang = parsed_data.get("lang")
-            user_name = parsed_data.get("user_name")
+            user_lang = parsed_data.get("lang") or "ja"  # デフォルト言語（例：日本語）
+            user_name = parsed_data.get("user_name") or "Takeshi" # default user name
             user_lookup = dummy_user_data.get(user_name)
 
             # エイリアス解決
@@ -126,7 +128,7 @@ async def driver_assist_ai(
         if "user_data" not in vehicle_status or not vehicle_status["user_data"]:
             logging.info("vehicle_status に user_data が無いため、login_user_data を補完します。")      
             if not login_user_data:
-                logging.warning("login_user_data が空です。補完される user_data がありません。")
+                logging.error("login_user_data が空です。補完される user_data がありません。")
             else:
                 logging.info("login_user_data : %s", json.dumps(login_user_data, ensure_ascii=False, indent=2))
             vehicle_status["user_data"] = login_user_data
@@ -154,7 +156,12 @@ async def driver_assist_ai(
                 f"【Title】{video_proposal['title']}\n"
                 f"【Genre】{video_proposal['genre']}\n"
                 f"【Reason】{video_proposal['reason']}\n\n"
-                f"Please summarize the content concisely and explain it to the user in natural language. "
+                f"Please explain the recommendation to the user in natural language.\n"
+                f"Start your explanation by mentioning that this video was recommended because the vehicle is currently in autonomous driving mode, "
+                f"which allows the user to safely enjoy video content during the ride.\n"
+                f"Then, explain the other reasons for this recommendation based on the 'Reason' above, "
+                f"such as matching the user's preferences (documentary, science, travel), fitting the ride time, and ensuring smooth streaming conditions.\n"
+                f"Finally, briefly summarize the video content and introduce the title naturally at the end.\n"
                 f"Respond in the language specified by '{user_lang}'."
             )
             await output_queue.put(text_to_realtime_api_json_as_role("user", video_summary_for_ai))

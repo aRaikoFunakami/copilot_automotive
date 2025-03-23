@@ -20,12 +20,27 @@ from dummy_login import dummy_login_page, demo_action_page
 from network_utils import get_local_ip
 from page_video import page_video
 from realtime_api_utils import text_to_realtime_api_json_as_role
+from dummy_data.vehicle_data import vehicle_data as vehicle_data_list
 
 # Global dictionary to manage connected clients
 connected_clients = {}
 
 # Get the local server IP address
 SERVER_IP = get_local_ip()
+
+def get_vehicle_data_by_scenario(action):
+    """
+    Extract vehicle_data from the list by matching the scenario.
+    """
+    for item in vehicle_data_list:
+        if item["action"] == action:
+            logging.error(f"Scenario : %s", json.dumps(item["vehicle_data"], ensure_ascii=False, indent=2))
+            print(item["vehicle_data"])
+            return item["vehicle_data"]
+        
+    logging.error(f"Scenario not found: {action}")
+    return None
+
 
 async def websocket_endpoint(websocket: WebSocket):
     """Handles WebSocket connections and manages data exchange between the client and AI."""
@@ -42,8 +57,9 @@ async def websocket_endpoint(websocket: WebSocket):
             "websocket": websocket,
             "input_queue": input_queue,
             "ai_input_queue": ai_input_queue,
-            "user_name": "",
-            "lang": ""
+            # デフォルトユーザー情報をセット
+            "user_name": "Takeshi",
+            "lang": "ja"
         }
 
         # Send client ID to the client
@@ -70,6 +86,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     logging.info(f"Received data_type: {data_type}")
 
                     if data_type == "dummy_login":
+                        logging.info(f"Received dummy_login: {json.dumps(data, ensure_ascii=False, indent=2)}")
                         # Forward message to target client
                         target_id = data.get("target_id")
                         msg_content = data.get("message")
@@ -94,6 +111,7 @@ async def websocket_endpoint(websocket: WebSocket):
                             logging.warning(f"Target client {target_id} not found.")
                             await websocket.send_text(json.dumps({"error": "Target client not found"}))
                     elif data_type == "demo_action":
+                        logging.info(f"Received demo_action: {json.dumps(data, ensure_ascii=False, indent=2)}")
                         target_id = data.get("target_id")
                         if target_id in connected_clients:
                             action = data.get("action")
@@ -104,19 +122,36 @@ async def websocket_endpoint(websocket: WebSocket):
                             action_str = json.dumps(data, ensure_ascii=False, indent=2)
                             logging.info(f"Send message to client: {action_str}")
 
+                            # クライアント側でダミー動画を再生する
                             target_id_websocket = connected_clients[target_id]["websocket"]
+                            #target_id_input_queue = connected_clients[target_id]["input_queue"]
+                            target_id_ai_input_queue = connected_clients[target_id]["ai_input_queue"]
                             await target_id_websocket.send_text(action_str)
+
+                            # AIにダミーのvehicle_statusを渡す
+                            vehicle_data = get_vehicle_data_by_scenario(action)
+
+                            # user_data は AI側がユーザーを知っているので自動追加される
+                            vehicle_status = {
+                                "type": "vehicle_status",
+                                "vehicle_data": vehicle_data,
+                            }
+                            message = json.dumps(vehicle_status, ensure_ascii=False, indent=2)
+                            await target_id_ai_input_queue.put(message)
+                            logging.info(f"Forwarding vehicle_status to AI: {json.dumps(vehicle_status, ensure_ascii=False, indent=2)}")
                         else:
                             logging.warning(f"Target client {target_id} not found.")
                             await websocket.send_text(json.dumps({"error": "Target client not found"}))
                     elif data_type == "vehicle_status":
+                        logging.info(f"Received vehicle_status: {json.dumps(data, ensure_ascii=False, indent=2)}")
                         await ai_input_queue.put(message)
                         await input_queue.put(text_to_realtime_api_json_as_role("system", json.dumps(data))) # str to dumps あとで確認する
+                        logging.info(f"Forwarding vehicle_status to AI: {json.dumps(data, ensure_ascii=False, indent=2)}")
                     else:
                         # Store valid JSON messages in the input queue and ai_input_queue
                         await input_queue.put(message)
             except Exception as e:
-                logging.error(f"WebSocket receive error: {e}")
+                logging.error(f"WebSocket receive error: {e}, client_id: {client_id}")
                 raise
                         
 

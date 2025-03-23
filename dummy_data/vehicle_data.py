@@ -1,6 +1,7 @@
 vehicle_data = [
     {
         "scenario": "自動運転中のドライバーへの提案",
+        "action": "start_autonomous",
         "vehicle_data": {
             "current_location": {"lat": 35.6895, "lon": 139.6917},
             "destination_info": {"distance_km": 30.0, "eta_sec": 1200},
@@ -12,6 +13,7 @@ vehicle_data = [
     },
     {
         "scenario": "EV充電中のドライバーへの提案",
+        "action": "start_ev_charge",
         "vehicle_data": {
             "current_location": {"lat": 34.6937, "lon": 135.5023},
             "destination_info": {"distance_km": 20.0, "eta_sec": 1500},
