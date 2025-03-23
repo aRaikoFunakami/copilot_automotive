@@ -246,4 +246,4 @@ if __name__ == "__main__":
         format="[%(asctime)s] [%(process)d] [%(levelname)s] [%(filename)s:%(lineno)d %(funcName)s] [%(message)s]",
         level=logging.INFO,
     )
-    uvicorn.run(app, host="0.0.0.0", port=3000)
+    uvicorn.run(app, host="0.0.0.0", port=3000, ws_max_size=16777216)
