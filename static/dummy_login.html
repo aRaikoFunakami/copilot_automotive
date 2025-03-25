@@ -60,7 +60,8 @@
     }
 
     .name-selection,
-    .demo-selection {
+    .demo-selection,
+    .etc-selection {
       background: rgba(255, 255, 255, 0.1);
       border-radius: 12px;
       padding: 15px;
@@ -70,7 +71,8 @@
 
     .lang-button,
     .button,
-    .demo-button {
+    .demo-button,
+    .stop-button {
       padding: 12px 20px;
       font-size: 16px;
       border: none;
@@ -84,13 +86,15 @@
 
     .lang-button:hover,
     .button:hover,
-    .demo-button:hover {
+    .demo-button:hover,
+    .stop-button:hover {
       transform: translateY(-5px) scale(1.05);
       background: linear-gradient(45deg, #7873f5, #ff6ec4);
     }
 
     .button,
-    .demo-button {
+    .demo-button,
+    .stop-button {
       width: 80%;
       margin: 12px auto;
       display: block;
@@ -142,6 +146,11 @@
       <button id="demo2" class="demo-button" onclick="sendDemo('start_ev_charge')">EV充電開始</button>
     </div>
 
+    <div id="etc-title" class="section-title">その他の操作</div>
+    <div class="demo-selection">
+      <button id="stop1" class="stop-button" onclick="sendStopConversation()">Stop</button>
+    </div>
+
     <p id="status"></p>
   </div>
 
@@ -163,6 +172,7 @@
           "lang_title": "Language Selection",
           "name_title": "Select Name to Login",
           "demo_title": "Demo Actions",
+          "etc_title": "Other Actions",
           "demo_autonomous": "Start Autonomous Driving",
           "demo_ev": "Start EV Charging"
         }
@@ -177,6 +187,7 @@
           "lang_title": "言語選択",
           "name_title": "名前を選んでログイン",
           "demo_title": "デモ操作",
+          "etc_title": "その他の操作",
           "demo_autonomous": "自動運転開始",
           "demo_ev": "EV充電開始"
         }
@@ -247,6 +258,8 @@
       setTimeout(() => {
         document.getElementById("status").innerText = name + i18next.t("success");
       }, 1500);
+      // クライアントアプリ側で再生中の音声をとめる
+      sendStopConversation() 
     }
 
     function sendDemo(action) {
@@ -264,6 +277,19 @@
       document.getElementById("status").innerText = "デモ送信: " + action;
     }
 
+    function sendStopConversation() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        document.getElementById("status").innerText = "WebSocket connection error.";
+        return;
+      }
+      const message = {
+        type: "stop_conversation",
+        target_id: targetId,
+      };
+      ws.send(JSON.stringify(message));
+      document.getElementById("status").innerText = "デモ送信: " + action;
+    }
+
     function changeLanguage(selectedLang) {
       lang = selectedLang;
       i18next.changeLanguage(lang, updateLanguage);
@@ -274,6 +300,7 @@
       document.getElementById("lang-title").innerText = i18next.t("lang_title");
       document.getElementById("name-title").innerText = i18next.t("name_title");
       document.getElementById("demo-title").innerText = i18next.t("demo_title");
+      document.getElementById("etc-title").innerText = i18next.t("etc_title");
       const nameArr = i18next.t("names", { returnObjects: true });
       document.getElementById("btn1").innerText = nameArr[0];
       document.getElementById("btn2").innerText = nameArr[1];

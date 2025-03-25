@@ -220,6 +220,15 @@ async def handle_websocket_messages(client_id: str, websocket: WebSocket):
                 logging.warning(f"Target client {target_id} not found.")
                 await websocket.send_text(json.dumps({"error": "Target client not found"}))
 
+        elif data_type == "stop_conversation":
+            logging.info(f"Received demo_action: {json.dumps(data, ensure_ascii=False, indent=2)}")
+            target_id = data.get("target_id")
+            if target_id in connected_clients:
+                # stop playing sound at the client app
+                action_str = json.dumps(data, ensure_ascii=False, indent=2)
+                await connected_clients[target_id]["websocket"].send_text(action_str)
+                logging.info(f"Send message to client: {action_str}")
+
         elif data_type == "vehicle_status":
             logging.info(f"Received vehicle_status: {json.dumps(data, ensure_ascii=False, indent=2)}")
             # Send to AI
