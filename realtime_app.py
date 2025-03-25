@@ -203,7 +203,7 @@ async def handle_websocket_messages(client_id: str, websocket: WebSocket):
 
                 # Also let the AI agent know to notify the user
                 await target_id_input_queue.put(
-                    text_to_realtime_api_json_as_role("user", f"「{action_str}モードになりました。」とユーザーに通知してください。")
+                    text_to_realtime_api_json_as_role("user", f"「{action}モードになりました。」とユーザーに通知してください。")
                 )
 
                 # Simulate wait and then send vehicle_status
