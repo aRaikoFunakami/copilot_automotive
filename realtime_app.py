@@ -201,13 +201,25 @@ async def handle_websocket_messages(client_id: str, websocket: WebSocket):
                 # Send the JSON to the target client to play dummy video
                 await target_id_websocket.send_text(action_str)
 
+                if action == "start_autonomous":
+                    demo_mode = "Autonomous"
+                elif action == "start_ev_charge":
+                    demo_mode = "EV Charge"
+
+                lang = connected_clients[target_id]["lang"]
+
+                message = f"""
+                    Please notify the user: The car is now in {demo_mode} mode.
+                    Please respond in the language specified by {lang}.
+                """
+                logging.info(f"Forwarding demo mode to AI: {message}")
                 # Also let the AI agent know to notify the user
                 await target_id_input_queue.put(
-                    text_to_realtime_api_json_as_role("user", f"「{action}モードになりました。」とユーザーに通知してください。")
+                    text_to_realtime_api_json_as_role("user", message)
                 )
 
                 # Simulate wait and then send vehicle_status
-                await asyncio.sleep(4)
+                await asyncio.sleep(5)
                 vehicle_data = get_vehicle_data_by_scenario(action)
                 vehicle_status = {
                     "type": "vehicle_status",
