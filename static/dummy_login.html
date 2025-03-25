@@ -147,7 +147,7 @@
 
   <script>
     let ws;
-    let clientId;
+    let targetId;
     let lang = "ja";
 
     const resources = {
@@ -183,7 +183,7 @@
 
     window.onload = function () {
       const params = new URLSearchParams(window.location.search);
-      clientId = params.get('client_id') || 'default_client';
+      targetId = params.get('target_id') || 'default_client';
 
       // Auto-detect ws or wss based on the page protocol
       const wsProtocol = (window.location.protocol === 'https:') ? 'wss://' : 'ws://';
@@ -212,7 +212,7 @@
 
       const message = {
         type: "dummy_login",
-        target_id: clientId,
+        target_id: targetId,
         message: i18next.t("message", { name }),
         user_name: name,
         lang: lang,
@@ -231,7 +231,7 @@
       }
       const message = {
         type: "demo_action",
-        target_id: clientId,
+        target_id: targetId,
         action: action,
         lang: lang,
       };

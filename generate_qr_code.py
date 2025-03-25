@@ -7,15 +7,15 @@ from network_utils import get_local_ip
 
 async def generate_qr_code(request, connected_clients):
     """Generates a QR code that directs to a connection page."""
-    client_id = request.query_params.get("client_id")  # クエリパラメータから取得
-    if not client_id or client_id not in connected_clients:
+    target_id = request.query_params.get("target_id")  # クエリパラメータから取得
+    if not target_id or target_id not in connected_clients:
         return HTMLResponse("<h2>Invalid client ID</h2>", status_code=400)
 
     # サーバーのローカルIPアドレスを取得
     server_ip = get_local_ip()
 
     # QRコードに埋め込む URL
-    connect_url = f"http://{server_ip}:3000/dummy_login?client_id={client_id}"
+    connect_url = f"http://{server_ip}:3000/dummy_login?target_id={target_id}"
 
     # QRコード生成
     qr = qrcode.make(connect_url)

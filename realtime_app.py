@@ -277,9 +277,9 @@ async def websocket_endpoint(websocket: WebSocket):
 
 async def generate_qr_code_with_clients(request):
     """Handles QR code generation with error handling."""
-    client_id = request.query_params.get("client_id")
-    if not client_id:
-        return JSONResponse({"error": "Missing client_id parameter"}, status_code=400)
+    target_id = request.query_params.get("target_id")
+    if not target_id:
+        return JSONResponse({"error": "Missing target_id parameter"}, status_code=400)
     return await generate_qr_code(request, connected_clients)
 
 
@@ -296,12 +296,12 @@ async def homepage(request):
 
 async def dummy_login_with_clients(request):
     """Handles dummy login requests with error handling."""
-    client_id = request.query_params.get("client_id")
-    if not client_id:
-        return JSONResponse({"error": "Missing client_id parameter"}, status_code=400)
+    target_id = request.query_params.get("target_id")
+    if not target_id:
+        return JSONResponse({"error": "Missing target_id parameter"}, status_code=400)
     
-    if client_id not in connected_clients:
-        return HTMLResponse("<h2>Invalid client ID</h2>", status_code=400)
+    if target_id not in connected_clients:
+        return HTMLResponse("<h2>Invalid target ID</h2>", status_code=400)
     
     return await dummy_login_page(request)
 
