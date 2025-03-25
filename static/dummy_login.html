@@ -147,8 +147,10 @@
 
   <script>
     let ws;
+    let clientId = null;
     let targetId;
     let lang = "ja";
+    const reconnectInterval = 3000;
 
     const resources = {
       en: {
@@ -184,22 +186,47 @@
     window.onload = function () {
       const params = new URLSearchParams(window.location.search);
       targetId = params.get('target_id') || 'default_client';
-
-      // Auto-detect ws or wss based on the page protocol
-      const wsProtocol = (window.location.protocol === 'https:') ? 'wss://' : 'ws://';
-
-      // Use location.host to dynamically handle domain and port
-      const serverHost = window.location.host;
-
-      // Create WebSocket connection
-      ws = new WebSocket(`${wsProtocol}${serverHost}/ws`);
-
-      ws.onopen = () => console.log("WebSocket connected.");
-      ws.onmessage = (e) => document.getElementById("status").innerText = e.data;
-      ws.onclose = () => console.log("WebSocket closed.");
-
       i18next.init({ lng: lang, resources }, () => updateLanguage());
+      connectWebSocket();
     };
+
+    function connectWebSocket() {
+      const wsProtocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
+      const serverHost = location.host;
+      const url = clientId ? `${wsProtocol}${serverHost}/ws?client_id=${clientId}` : `${wsProtocol}${serverHost}/ws`;
+
+      ws = new WebSocket(url);
+
+      ws.onopen = () => {
+        console.log("WebSocket connected");
+        document.getElementById("status").innerText = "WebSocket connected.";
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === 'client_id') {
+            clientId = data.client_id;
+            console.log("Received client_id:", clientId);
+          } else {
+            document.getElementById("status").innerText = data.message || JSON.stringify(data);
+          }
+        } catch (e) {
+          document.getElementById("status").innerText = event.data;
+        }
+      };
+
+      ws.onclose = () => {
+        console.log("WebSocket closed. Reconnecting...");
+        document.getElementById("status").innerText = "WebSocket disconnected. Reconnecting...";
+        setTimeout(connectWebSocket, reconnectInterval); // 再接続はここで一元化
+      };
+
+      ws.onerror = (err) => {
+        console.error("WebSocket error", err);
+        ws.close(); // ここで一旦切断 → onclose で再接続
+      };
+    }
 
     function sendLogin(index) {
       if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -209,7 +236,6 @@
       const nameArr = i18next.t("names", { returnObjects: true });
       const name = nameArr[index];
       document.getElementById("status").innerText = i18next.t("login");
-
       const message = {
         type: "dummy_login",
         target_id: targetId,
@@ -218,7 +244,6 @@
         lang: lang,
       };
       ws.send(JSON.stringify(message));
-
       setTimeout(() => {
         document.getElementById("status").innerText = name + i18next.t("success");
       }, 1500);
@@ -249,12 +274,10 @@
       document.getElementById("lang-title").innerText = i18next.t("lang_title");
       document.getElementById("name-title").innerText = i18next.t("name_title");
       document.getElementById("demo-title").innerText = i18next.t("demo_title");
-
       const nameArr = i18next.t("names", { returnObjects: true });
       document.getElementById("btn1").innerText = nameArr[0];
       document.getElementById("btn2").innerText = nameArr[1];
       document.getElementById("btn3").innerText = nameArr[2];
-
       document.getElementById("demo1").innerText = i18next.t("demo_autonomous");
       document.getElementById("demo2").innerText = i18next.t("demo_ev");
     }
