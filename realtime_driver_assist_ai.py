@@ -156,11 +156,14 @@ async def driver_assist_ai(
                 Read the data below and briefly explain:
                 1. Why is now a safe and good timing to suggest the video? (e.g., because the car is in autonomous driving mode or charging, so it’s safe to recommend content now)
                 2. What kind of content is this video, and why is it a good fit for the user?
+                3. How long is the video, and the duration is suitable for the user's current situation? In case of charging, the video should be within 30 minutes to fit charging time.
 
                 # Data:
                 Title: {video_proposal['title']}
                 Genre: {video_proposal['genre']}
                 Reason: {video_proposal['reason']}
+                VideoDuration: {video_proposal['video_duration']}
+                AudioOnly: {video_proposal['audio_only']}
 
                 Make it sound natural, like you're recommending it because you think the timing and content are just right.
                 Keep your answer concise.

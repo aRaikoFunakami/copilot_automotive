@@ -53,6 +53,8 @@ If a suitable video is found:
   "genre": "<video_genre>",
   "iframe": "<video_iframe (copy from candidate)>",
   "reason": "<brief explanation of why this video was selected>"
+  "video_duration" : "<video duration>",
+  "audio_only": "<video with audio or audio only content>",
 }}
 
 If no suitable video is found:
@@ -103,6 +105,8 @@ class VideoRecommender:
                 "title": "",
                 "genre": "",
                 "iframe": "",
+                "video_duration" : "",
+                "audio_only": "",
                 "reason": "入力データが不正または不足しています（データ破損の可能性あり）",
                 "data_broken": True,
                 "video_url": ""

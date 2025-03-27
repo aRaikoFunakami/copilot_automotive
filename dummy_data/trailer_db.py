@@ -48,7 +48,7 @@ class TrailerDB:
                         .first()
             )
 
-        return per_genre[['title', 'genre', 'iframe']].to_dict(orient='records')
+        return per_genre[['title', 'genre', 'iframe', 'video_duration', 'audio_only']].to_dict(orient='records')
 
 
     
