@@ -77,10 +77,11 @@ async def driver_assist_ai(
             break
 
         # 前回と同じデータならスキップ
-        if incoming_data == previous_data:
-            logging.info("同一データ受信のためスキップします。")
-            continue
-        previous_data = incoming_data
+        # 現在は手動でデータがおくられてくるのでコメントアウト
+        # if incoming_data == previous_data:
+        #    logging.info("同一データ受信のためスキップします。")
+        #    continue
+        # previous_data = incoming_data
 
         if not ENABLE_DRIVER_ASSIST:
             logging.info("Driver assist is disabled. Skipping processing.")
@@ -163,6 +164,8 @@ async def driver_assist_ai(
 
                 Make it sound natural, like you're recommending it because you think the timing and content are just right.
                 Keep your answer concise.
+
+                # ABSOLUTE RULE
                 Respond in the language specified by '{user_lang}'. 
                 """
             #video_summary_for_ai = "hello"
