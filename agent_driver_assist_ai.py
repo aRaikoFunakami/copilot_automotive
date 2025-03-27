@@ -22,18 +22,19 @@ for the video recommendation engine.
 Output JSON format:
 {
     "video_search_params": { 
-        "max_duration_sec": 1800,
-        "viewer_role": "passenger",
-        "viewer_age": 28,
-        "preferred_genres": ["action", "comedy", "sci-fi"],
-        "avoid_recently_watched": true,
-        "driving_status": "autonomous",
-        "network_condition": "good",
-        "session_id": "abc123xyz789",
-        "reason": "Briefly explain why these parameters were chosen based on the user input and conditions."
-    },
+        "max_duration_sec": <int, maximum duration (in seconds) based on driving or charging status>,
+        "viewer_role": <"driver" or "passenger", depending on who is watching>,
+        "viewer_age": <int, age of the viewer>,
+        "preferred_genres": <list of strings, genres the viewer prefers>,
+        "avoid_recently_watched": <bool, true if user wants to avoid rewatching>,
+        "driving_status": <string, e.g., "autonomous", "charging", or "manual">,
+        "network_condition": <string, e.g., "good", "poor">,
+        "session_id": <string, unique identifier for this session>,
+        "reason": "A concise explanation describing why these parameters were set, referencing the user's preferences and vehicle conditions (e.g., battery level, ETA, passenger role)."
+    }
 }
-''',
+'''
+,
     "schedule": '''
 You are a schedule management assistant. 
 Analyze the vehicle status and calendar events to determine if the user might be late. 
@@ -48,6 +49,7 @@ Output JSON format:
 }
 '''
 }
+
 
 
 class AgentDriverAssistAI:
@@ -130,6 +132,7 @@ async def main():
 
     for vehicle_status in scenario_data:
         vehicle_status_json = json.dumps(vehicle_status, ensure_ascii=False, indent=2)
+        logging.info(f"Vehicle status: {vehicle_status_json}")
         responses = await chat_manager.run_agent(vehicle_status_json, thread_id)
 
 

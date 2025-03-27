@@ -29,22 +29,17 @@ from network_utils import get_local_ip
 user_prompt_template = """
 You are an AI video recommender.
 
-Choose ONE video ONLY from the candidate list below. Follow the rules:
+Choose ONE video ONLY from the candidate list below.
 
 Rules:
 - DO NOT invent videos. Recommend ONLY from the candidate list.
-- All videos are pre-filtered by max_duration. No need to check duration.
-- Prioritize videos matching the user's preferred genres.
-- If no exact match, you MAY select a video from a similar or related genre.
-- If you cannot find any suitable video, explain clearly WHY in the reason field.
+- The candidate list has already been pre-filtered by relevance, duration, and genre.
+- Select the video that best matches the user's interests based on the available options.
+- If no suitable video is found, explain clearly why in the reason field.
 
-Genre matching rules (examples of similarity you should consider):
-- "science" may include "education"
-- "documentary" may include "education" or "news"
-- "travel" may include "documentary", "culture", or "history"
+User Proposal (input data):
+{proposal}
 
-User preferences:
-- Preferred genres: {preferred_genres}
 
 Candidate Videos:
 {candidates}
@@ -54,10 +49,10 @@ Respond ONLY in the following pure JSON format:
 If a suitable video is found:
 {{
   "has_recommendation": true,
-  "title": "<video_title>",
+  "title": "<video_title (must match exactly)>",
   "genre": "<video_genre>",
-  "iframe": "<video_iframe>",
-  "reason": "<why you chose this video>"
+  "iframe": "<video_iframe (copy from candidate)>",
+  "reason": "<brief explanation of why this video was selected>"
 }}
 
 If no suitable video is found:
@@ -66,13 +61,16 @@ If no suitable video is found:
   "title": "",
   "genre": "",
   "iframe": "",
-  "reason": "<explain clearly why no candidate was suitable>"
+  "reason": "<explanation of why no video was selected>"
 }}
 
 IMPORTANT:
 - Output ONLY pure JSON. DO NOT use ```json or any markdown.
+- You MUST select from the candidate list exactly as provided.
 - reason must be written in English.
 """
+
+
 
 class VideoRecommender:
     def __init__(self):
@@ -90,7 +88,7 @@ class VideoRecommender:
 
         self.prompt_template = PromptTemplate(
             template=user_prompt_template,
-            input_variables=["preferred_genres", "candidates"]
+            input_variables=["proposal", "candidates"]
         )
 
         # 動的にローカルIP取得（初期化時に取得）
@@ -110,9 +108,13 @@ class VideoRecommender:
                 "video_url": ""
             }
 
-        candidates = self.db.get_video_candidates(proposal['max_duration_sec'])
+        candidates = self.db.get_video_candidates(proposal)
+
+        logging.info(json.dumps(proposal, ensure_ascii=False, indent=2))
+        logging.info(json.dumps(candidates, ensure_ascii=False, indent=2))
+        
         user_prompt = self.prompt_template.format(
-            preferred_genres=", ".join(proposal["preferred_genres"]),
+            proposal=json.dumps(proposal, ensure_ascii=False, indent=2),
             candidates=json.dumps(candidates, ensure_ascii=False, indent=2)
         )
 
@@ -144,7 +146,7 @@ async def main():
         "max_duration_sec": 1800,
         "viewer_role": "driver",
         "viewer_age": 40,
-        "preferred_genres": ["documentary", "science", "travel"],
+        "preferred_genres": ["コメディー"],
         "avoid_recently_watched": True,
         "driving_status": "autonomous",
         "network_condition": "good",
