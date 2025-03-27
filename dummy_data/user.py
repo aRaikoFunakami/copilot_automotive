@@ -1,30 +1,30 @@
 # user_data_samples.py
 
 user_data = {
-    "Takeshi": {
-        "user_name": "Takeshi",
+    "Ken": {
+        "user_name": "Ken",
         "viewer_role": "driver",
         "viewer_age": 40,
-        "preferred_genres": ["documentary", "science", "travel"],
+        "preferred_genres": ["comedy", "comedy", "comedy"],
         "recent_watch_history": ["video001", "video002"]
     },
-    "たけし": "Takeshi",   # alias
-    "Akiko": {
-        "user_name": "Akiko",
+    "けん": "Ken",   # alias
+    "Yuki": {
+        "user_name": "Yuki",
         "viewer_role": "driver",
         "viewer_age": 45,
-        "preferred_genres": ["news", "sports", "action"],
+        "preferred_genres": ["action", "anime", "action"],
         "recent_watch_history": ["video010", "video020"]
     },
-    "あきこ": "Akiko",    # alias
-    "Kotaro": {
-        "user_name": "Kotaro",
+    "ゆき": "Yuki",    # alias
+    "Ryo": {
+        "user_name": "Ryo",
         "viewer_role": "passenger",
-        "viewer_age": 30,
-        "preferred_genres": ["comedy", "drama", "anime"],
+        "viewer_age": 16,
+        "preferred_genres": ["anime", "anime", "anime"],
         "recent_watch_history": ["video100", "video200"]
     },
-    "こたろう": "Kotaro"   # alias
+    "りょう": "Ryo"   # alias
 }
 
 if __name__ == "__main__":
