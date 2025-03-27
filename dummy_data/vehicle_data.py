@@ -4,7 +4,7 @@ vehicle_data = [
         "action": "start_autonomous",
         "vehicle_data": {
             "current_location": {"lat": 35.6895, "lon": 139.6917},
-            "destination_info": {"distance_km": 30.0, "eta_sec": 1200},
+            "destination_info": {"distance_km": 160.0, "eta_sec": 8200},
             "driving_status": "autonomous",
             "network_status": "good",
             "vehicle_speed": 100,
