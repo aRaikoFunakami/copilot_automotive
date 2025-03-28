@@ -1,3 +1,5 @@
+import os
+import sys
 import uvicorn
 import logging
 import asyncio
@@ -9,6 +11,9 @@ from starlette.routing import Route, WebSocketRoute
 from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocket
 from starlette.websockets import WebSocketState
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.requests import Request
 
 from langchain_openai_voice import OpenAIVoiceReactAgent
 from realtime_utils import (
@@ -27,6 +32,61 @@ from dummy_data.vehicle_data import vehicle_data as vehicle_data_list
 # Global dictionary to manage connected clients/sessions
 # Key: client_id, Value: dict with websockets, queues, agent tasks, etc.
 connected_clients = {}
+
+
+
+AUTH_TOKEN = os.environ.get("AUTH_TOKEN")
+
+if not AUTH_TOKEN:
+    logging.basicConfig(level=logging.ERROR)
+    logging.error("\n" + "="*60)
+    logging.error("🚨 AUTH_TOKEN is not set in environment variables.")
+    logging.error("    -> Please set AUTH_TOKEN before starting the server.")
+    logging.error("="*60 + "\n")
+    sys.exit(1)
+
+class TokenAuthMiddleware:
+    def __init__(self, app: ASGIApp):
+        self.app = app
+        self.expected_token = os.environ.get("AUTH_TOKEN")
+
+        if not self.expected_token:
+            logging.error("\n" + "="*60)
+            logging.error("🚨 AUTH_TOKEN is not set in environment variables.")
+            logging.error("    -> Please set AUTH_TOKEN before starting the server.")
+            logging.error("="*60 + "\n")
+            raise RuntimeError("AUTH_TOKEN is not set. Aborting startup.")
+        else:
+            logging.info(f"Expected AUTH_TOKEN: {self.expected_token}")
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] == "http":
+            request = Request(scope)
+            token = request.headers.get("Authorization") or request.query_params.get("token")
+            if token != self.expected_token:
+                response = JSONResponse({"error": "Unauthorized"}, status_code=403)
+                await response(scope, receive, send)
+                return
+
+        elif scope["type"] == "websocket":
+            headers = dict(scope.get("headers") or [])
+            token = None
+            for k, v in headers.items():
+                if k == b'authorization':
+                    token = v.decode()
+                    break
+            if not token:
+                query_string = scope.get("query_string", b"").decode()
+                query_params = dict(p.split("=") for p in query_string.split("&") if "=" in p)
+                token = query_params.get("token")
+
+            if token != self.expected_token:
+                ws = WebSocket(scope, receive=receive, send=send)
+                await ws.close(code=1008)
+                return
+
+        await self.app(scope, receive, send)
+
 
 def get_vehicle_data_by_scenario(action):
     """
@@ -301,7 +361,7 @@ async def generate_qr_code_with_clients(request):
     target_id = request.query_params.get("target_id")
     if not target_id:
         return JSONResponse({"error": "Missing target_id parameter"}, status_code=400)
-    return await generate_qr_code(request, connected_clients)
+    return await generate_qr_code(request, connected_clients, AUTH_TOKEN)
 
 
 async def homepage(request):
@@ -342,6 +402,9 @@ app = Starlette(debug=True, routes=routes)
 
 # Mount static directory
 app.mount("/", StaticFiles(directory="static"), name="static")
+
+# Add token-based authentication middleware
+app.add_middleware(TokenAuthMiddleware)
 
 if __name__ == "__main__":
     logging.basicConfig(

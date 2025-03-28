@@ -159,6 +159,7 @@
     let clientId = null;
     let targetId;
     let lang = "ja";
+    let token = "";
     const reconnectInterval = 3000;
 
     const resources = {
@@ -197,6 +198,7 @@
     window.onload = function () {
       const params = new URLSearchParams(window.location.search);
       targetId = params.get('target_id') || 'default_client';
+      token = params.get('token') || '';
       i18next.init({ lng: lang, resources }, () => updateLanguage());
       connectWebSocket();
     };
@@ -204,7 +206,7 @@
     function connectWebSocket() {
       const wsProtocol = (location.protocol === 'https:') ? 'wss://' : 'ws://';
       const serverHost = location.host;
-      const url = clientId ? `${wsProtocol}${serverHost}/ws?client_id=${clientId}` : `${wsProtocol}${serverHost}/ws`;
+      const url = clientId ? `${wsProtocol}${serverHost}/ws?client_id=${clientId}&token=${token}` : `${wsProtocol}${serverHost}/ws?token=${token}`;
 
       ws = new WebSocket(url);
 
