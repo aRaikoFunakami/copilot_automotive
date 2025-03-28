@@ -176,7 +176,8 @@ async def handle_websocket_messages(client_id: str, websocket: WebSocket):
     Main loop that continuously receives messages from the (re)connected WebSocket.
     Puts them into the client's queues for further processing.
     """
-    while True:
+    try:
+      while True:
         try:
             # If you already have a generator function: async for msg in websocket_stream(websocket):
             # you can adapt it here. Otherwise:
@@ -313,9 +314,30 @@ async def handle_websocket_messages(client_id: str, websocket: WebSocket):
         else:
             # General message, store in input_queue (and/or ai_input_queue if needed)
             await input_queue.put(msg)
+    except Exception as e:
+        logging.warning(f"WebSocket {client_id} disconnected: {e}")
+    finally:
+        # End of while True: WebSocket is disconnected
+        logging.info(f"Exited message loop for client_id: {client_id}")
+        # タスクのキャンセル処理
+        session_data = connected_clients.get(client_id)
+        if session_data:
+            driver_assist_task = session_data.get("driver_assist_task")
+            agent_task = session_data.get("agent_task")
 
-    # End of while True: WebSocket is disconnected
-    logging.info(f"Exited message loop for client_id: {client_id}")
+            if driver_assist_task:
+                driver_assist_task.cancel()
+                try:
+                    await driver_assist_task
+                except asyncio.CancelledError:
+                    logging.info(f"driver_assist_task for {client_id} is cancelled.")
+
+            if agent_task:
+                agent_task.cancel()
+                try:
+                    await agent_task
+                except asyncio.CancelledError:
+                    logging.info(f"agent_task for {client_id} is cancelled.")
 
 
 async def websocket_endpoint(websocket: WebSocket):
@@ -352,7 +374,7 @@ async def websocket_endpoint(websocket: WebSocket):
 
     # 当面はセッションを削除しない：再接続を継続的に許容
     # もし最終的にクライアントを完全終了したい場合は、ここで「削除」しても良い
-    # del connected_clients[client_id]
+    del connected_clients[client_id]
     logging.info(f"WebSocket disconnected for client_id: {client_id}")
 
 
