@@ -1,45 +1,37 @@
 import qrcode
 import base64
-import socket  # 追加
 from io import BytesIO
+from starlette.templating import Jinja2Templates
 from starlette.responses import HTMLResponse
-from network_utils import get_local_ip  
+from network_utils import get_local_ip
+
+# Set up Jinja2 templates directory (推奨: templates/)
+templates = Jinja2Templates(directory="static")
 
 async def generate_qr_code(request, connected_clients, token):
     """Generates a QR code that directs to a connection page."""
-    target_id = request.query_params.get("target_id")  # クエリパラメータから取得
+    target_id = request.query_params.get("target_id")
     if not target_id or target_id not in connected_clients:
         return HTMLResponse("<h2>Invalid client ID</h2>", status_code=400)
 
-    # サーバーのローカルIPアドレスを取得
+    # Get server local IP
     server_ip = get_local_ip()
 
-    # QRコードに埋め込む URL
+    # URL to embed in the QR code
     connect_url = f"http://{server_ip}:3000/dummy_login?target_id={target_id}&token={token}"
 
-    # QRコード生成
+    # Generate QR code
     qr = qrcode.make(connect_url)
     buffer = BytesIO()
     qr.save(buffer, format="PNG")
     buffer.seek(0)
 
-    # Base64エンコードしてHTMLで表示
+    # Encode QR code image to Base64
     qr_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
-    html_content = f"""
-    <!DOCTYPE html>
-    <html lang="ja">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>QRコード</title>
-    </head>
-    <body>
-        <h2>QRコードをスキャンしてください</h2>
-        <img src="data:image/png;base64,{qr_base64}" alt="QR Code">
-        <p>このQRコードをスキャンすると、自動的にWebSocketが接続されます。</p>
-        <p>接続URL: <a href="{connect_url}">{connect_url}</a></p>
-    </body>
-    </html>
-    """
 
-    return HTMLResponse(html_content)
+    # Render HTML template
+    return templates.TemplateResponse("qr_code.html", {
+        "request": request,
+        "qr_base64": qr_base64,
+        "connect_url": connect_url
+    })
