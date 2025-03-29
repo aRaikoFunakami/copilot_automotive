@@ -8,7 +8,7 @@ vehicle_data = [
             "driving_status": "autonomous",
             "network_status": "good",
             "vehicle_speed": 100,
-            "energy_status": {"battery_level": 70, "charging": False}
+            "energy_status": {"battery_level": 100, "charging": False}
         }
     },
     {
@@ -20,7 +20,7 @@ vehicle_data = [
             "driving_status": "charging",
             "network_status": "good",
             "vehicle_speed": 0,
-            "energy_status": {"battery_level": 35, "charging": True}
+            "energy_status": {"battery_level": 100, "charging": True}
         }
     },
     {

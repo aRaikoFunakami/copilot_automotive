@@ -44,6 +44,7 @@ If the battery level is low or insufficient to reach the destination, suggest to
 
 ### Output Format (must strictly follow this structure):
 {
+  "need_ev_charge": <bool, true if EV charging is needed>,
   "reason": "<Explanation of why EV charging is being suggested>",
 }
 '''
@@ -107,9 +108,11 @@ class AgentDriverAssistAI:
                 proposal_video["type"] = "proposal_video"
             final_response["proposal_video"] = proposal_video
 
-        # Extract EV charge proposal and format it
-        if "reason" in ev_charge_response:
-            final_response["proposal_ev_charge"] = format_proposal_ev_charge(json.dumps(ev_charge_response, ensure_ascii=False, indent=2))
+        # add proposal_ev_charge if needed
+        if ev_charge_response.get("need_ev_charge") and "reason" in ev_charge_response:
+            final_response["proposal_ev_charge"] = format_proposal_ev_charge(
+                json.dumps(ev_charge_response, ensure_ascii=False, indent=2)
+            )
 
 
         final_response_str = json.dumps(final_response, ensure_ascii=False, indent=2)

@@ -271,10 +271,16 @@ async def handle_websocket_messages(client_id: str, websocket: WebSocket):
 
                 lang = connected_clients[target_id]["lang"]
 
-                message = f"""
-                    Please notify the user: The car is now in {demo_mode} mode.
-                    Please respond in the language specified by {lang}.
-                """
+                if action == "start_autonomous" or action == "start_ev_charge":
+                    message = f"""
+                        Please notify the user: The car is now in {demo_mode} mode.
+                        Please respond in the language specified by {lang}.
+                    """
+                elif action == "start_battery_level_low":
+                    message = f"""
+                        Please notify the user: The car's battery level is low.
+                        Please respond in the language specified by {lang}.
+                    """
                 logging.info(f"Forwarding demo mode to AI: {message}")
                 # Also let the AI agent know to notify the user
                 await target_id_input_queue.put(

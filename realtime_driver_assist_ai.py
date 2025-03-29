@@ -259,7 +259,9 @@ async def handle_proposal_json(
         await output_queue.put(text_to_realtime_api_json_as_role("user", summary_for_ai))
         summary_for_ai = f"""
             Repeat the following sentence exactly as it is, without adding or changing anything:
-            Let me show you nearby EV charging stations.     
+            Let me show you nearby EV charging stations.
+            # ABSOLUTE RULE
+            Respond in the language specified by '{user_lang}'.
         """
         await output_queue.put(text_to_realtime_api_json_as_role("user", summary_for_ai))
         return
