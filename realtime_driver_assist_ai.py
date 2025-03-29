@@ -143,9 +143,20 @@ async def driver_assist_ai(
         except json.JSONDecodeError:
             proposal_json = {}
 
-        video_proposal = proposal_json.get("video_proposal", {})
-        
-        # If return_direct in video_proposal, send to client
+        await handle_proposal_json(proposal_json, user_lang, output_queue, send_output_chunk)
+
+
+async def handle_proposal_json(
+    proposal_json: dict,
+    user_lang: str,
+    output_queue: asyncio.Queue,
+    send_output_chunk: Callable[[str], Coroutine[Any, Any, None]]
+):
+    """
+    Handle different types of proposals inside the AI response JSON.
+    """
+    if "video_proposal" in proposal_json:
+        video_proposal = proposal_json["video_proposal"]
         if isinstance(video_proposal, dict) and video_proposal.get("return_direct", False):
             logging.info("video_proposal の return_direct フラグ付きのため、クライアントに直接送信します.")
             logging.info("video_proposal : %s", json.dumps(video_proposal, ensure_ascii=False, indent=2))
@@ -171,10 +182,31 @@ async def driver_assist_ai(
                 # ABSOLUTE RULE
                 Respond in the language specified by '{user_lang}'. 
                 """
-            #video_summary_for_ai = "hello"
             await output_queue.put(text_to_realtime_api_json_as_role("user", video_summary_for_ai))
-        else:
-            await output_queue.put(text_to_realtime_api_json_as_role("system", proposal_result))
+            return  # すでに出力したので処理終了
+
+    '''
+    if "alert_proposal" in proposal_json:
+        # 例：アラート提案の処理
+        alert = proposal_json["alert_proposal"]
+        logging.info("alert_proposal を処理します。")
+        await output_queue.put(text_to_realtime_api_json_as_role("system", json.dumps(alert, ensure_ascii=False)))
+        return
+
+    if "navigation_proposal" in proposal_json:
+        # 例：ナビ提案の処理
+        nav = proposal_json["navigation_proposal"]
+        logging.info("navigation_proposal を処理します。")
+        await output_queue.put(text_to_realtime_api_json_as_role("system", json.dumps(nav, ensure_ascii=False)))
+        return
+    '''
+    # その他の提案タイプがあればここで拡張可能
+
+    # 上記に該当しない場合は proposal_json 全体を system 出力
+    logging.info("既知の提案が見つからなかったため、全体を system に出力します。")
+    await output_queue.put(text_to_realtime_api_json_as_role("system", json.dumps(proposal_json, ensure_ascii=False)))
+
+
 
 #
 # Test code
