@@ -146,6 +146,35 @@ async def driver_assist_ai(
         await handle_proposal_json(proposal_json, user_lang, output_queue, send_output_chunk)
 
 
+def select_highest_priority_proposal(proposal_json: dict, priority_table: dict) -> tuple[str, dict] | None:
+    """
+    Select the highest priority proposal from the given proposal_json.
+
+    Parameters:
+        proposal_json (dict): Dictionary containing multiple proposals
+        priority_table (dict): Proposal type to priority number mapping (lower number = higher priority)
+
+    Returns:
+        tuple[str, dict] | None: The (proposal_key, proposal_data) with the highest priority,
+                                 or None if no known proposals found
+    """
+    # フィルター: priority_table に定義された proposal だけを対象にする
+    valid_proposals = {
+        key: value for key, value in proposal_json.items()
+        if key in priority_table
+    }
+
+    if not valid_proposals:
+        return None  # マッチする提案がない場合
+
+    # 優先度でソートし、一番優先度の高い（数値が小さい）ものを選択
+    sorted_proposals = sorted(
+        valid_proposals.items(),
+        key=lambda item: priority_table[item[0]]
+    )
+
+    return sorted_proposals[0] 
+
 async def handle_proposal_json(
     proposal_json: dict,
     user_lang: str,
@@ -155,51 +184,86 @@ async def handle_proposal_json(
     """
     Handle different types of proposals inside the AI response JSON.
     """
-    if "video_proposal" in proposal_json:
-        video_proposal = proposal_json["video_proposal"]
-        if isinstance(video_proposal, dict) and video_proposal.get("return_direct", False):
-            logging.info("video_proposal の return_direct フラグ付きのため、クライアントに直接送信します.")
-            logging.info("video_proposal : %s", json.dumps(video_proposal, ensure_ascii=False, indent=2))
-            proposal_to_client = json.dumps(video_proposal, ensure_ascii=False, indent=2)
-            await send_output_chunk(proposal_to_client)
+    # Select the proposal with priority
+    PROPOSAL_PRIORITY = {
+        "proposal_ev_charge": 1,  # 最も優先
+        "proposal_video": 2,      # 優先度低め
+        # 今後他の proposal が増えてもここに追加するだけで対応可能
+    }
 
-            video_summary_for_ai = f"""
-                Read the data below and briefly explain:
-                1. Why is now a safe and good timing to suggest the video? (e.g., because the car is in autonomous driving mode or charging, so it’s safe to recommend content now)
-                2. What kind of content is this video, and why is it a good fit for the user?
-                3. How long is the video, and the duration is suitable for the user's current situation? In case of charging, the video should be within 30 minutes to fit charging time.
-
-                # Data:
-                Title: {video_proposal['title']}
-                Genre: {video_proposal['genre']}
-                Reason: {video_proposal['reason']}
-                VideoDuration: {video_proposal['video_duration']}
-                AudioOnly: {video_proposal['audio_only']}
-
-                Make it sound natural, like you're recommending it because you think the timing and content are just right.
-                Keep your answer concise.
-
-                # ABSOLUTE RULE
-                Respond in the language specified by '{user_lang}'. 
-                """
-            await output_queue.put(text_to_realtime_api_json_as_role("user", video_summary_for_ai))
-            return  # すでに出力したので処理終了
-
-    '''
-    if "alert_proposal" in proposal_json:
-        # 例：アラート提案の処理
-        alert = proposal_json["alert_proposal"]
-        logging.info("alert_proposal を処理します。")
-        await output_queue.put(text_to_realtime_api_json_as_role("system", json.dumps(alert, ensure_ascii=False)))
+    proposal_entry = select_highest_priority_proposal(proposal_json, PROPOSAL_PRIORITY)
+    if not proposal_entry:
+        logging.info("有効な提案が見つかりませんでした。")
         return
 
-    if "navigation_proposal" in proposal_json:
-        # 例：ナビ提案の処理
-        nav = proposal_json["navigation_proposal"]
-        logging.info("navigation_proposal を処理します。")
-        await output_queue.put(text_to_realtime_api_json_as_role("system", json.dumps(nav, ensure_ascii=False)))
+    proposal_key, proposal_data = proposal_entry
+    logging.info("選択された提案: %s", json.dumps(proposal_data, ensure_ascii=False, indent=2))
+
+    # check return_direct proposals and send them directly to the client
+    if proposal_data.get("return_direct", True):
+        proposal_to_client = json.dumps(proposal_data, ensure_ascii=False, indent=2)
+        logging.info("%s は return_direct フラグ付きのため、クライアントに直接送信します.", proposal_data["type"])
+        logging.info("%s", proposal_to_client)
+        await send_output_chunk(proposal_to_client)
+
+    # special logic for each proposal type
+    if "proposal_video" == proposal_key:
+        logging.info("動画提案を検出しました。")
+        proposal = proposal_json["proposal_video"]
+        summary_for_ai = f"""
+            Read the data below and briefly explain:
+            1. Why is now a safe and good timing to suggest the video? (e.g., because the car is in autonomous driving mode or charging, so it’s safe to recommend content now)
+            2. What kind of content is this video, and why is it a good fit for the user?
+            3. How long is the video, and the duration is suitable for the user's current situation? In case of charging, the video should be within 30 minutes to fit charging time.
+
+            # Data:
+            Title: {proposal['title']}
+            Genre: {proposal['genre']}
+            Reason: {proposal['reason']}
+            VideoDuration: {proposal['video_duration']}
+            AudioOnly: {proposal['audio_only']}
+
+            Make it sound natural, like you're recommending it because you think the timing and content are just right.
+            Keep your answer concise.
+
+            # ABSOLUTE RULE
+            Respond in the language specified by '{user_lang}'. 
+            """
+        await output_queue.put(text_to_realtime_api_json_as_role("user", summary_for_ai))
         return
-    '''
+
+
+    if "proposal_ev_charge" == proposal_key:
+        proposal = proposal_json["proposal_ev_charge"]
+        logging.info("EV充電提案を検出しました。")
+        summary_for_ai = f"""
+            You are an in-vehicle AI assistant in an electric vehicle (EV).
+            The following "reason" is an internal explanation for why the AI decided to suggest EV charging to the driver.
+            Based on this reason, write a short, user-friendly explanation in natural language that clearly and concisely tells the user **why EV charging is being suggested right now**.
+
+            ### Guidelines:
+            - Use a casual, friendly tone (not overly formal)
+            - Avoid technical jargon
+            - Output should be natural language text only (no JSON, no markup)
+
+            ### Input:
+            "reason": "{{proposal['reason']}}"
+
+            ### Example Output:
+            - Your battery is running low, so it's a good time to charge. I'll show you the nearest EV charging station.
+            - You might not have enough charge to reach your destination safely. I'll show you the nearest EV charging station.
+
+            # ABSOLUTE RULE
+            Respond in the language specified by '{user_lang}'.
+        """
+        await output_queue.put(text_to_realtime_api_json_as_role("user", summary_for_ai))
+        summary_for_ai = f"""
+            Repeat the following sentence exactly as it is, without adding or changing anything:
+            Let me show you nearby EV charging stations.     
+        """
+        await output_queue.put(text_to_realtime_api_json_as_role("user", summary_for_ai))
+        return
+
     # その他の提案タイプがあればここで拡張可能
 
     # 上記に該当しない場合は proposal_json 全体を system 出力

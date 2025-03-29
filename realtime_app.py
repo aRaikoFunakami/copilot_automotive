@@ -266,6 +266,8 @@ async def handle_websocket_messages(client_id: str, websocket: WebSocket):
                     demo_mode = "Autonomous"
                 elif action == "start_ev_charge":
                     demo_mode = "EV Charge"
+                elif action == "start_battery_level_low":
+                    demo_mode = "Battery Level Low"
 
                 lang = connected_clients[target_id]["lang"]
 

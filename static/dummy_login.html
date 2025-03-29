@@ -144,6 +144,7 @@
     <div class="demo-selection">
       <button id="demo1" class="demo-button" onclick="sendDemo('start_autonomous')">自動運転開始</button>
       <button id="demo2" class="demo-button" onclick="sendDemo('start_ev_charge')">EV充電開始</button>
+      <button id="demo3" class="demo-button" onclick="sendDemo('start_battery_level_low')">バッテリーレベル低</button>
     </div>
 
     <div id="etc-title" class="section-title">その他の操作</div>
@@ -175,7 +176,8 @@
           "demo_title": "Demo Actions",
           "etc_title": "Other Actions",
           "demo_autonomous": "Start Autonomous Driving",
-          "demo_ev": "Start EV Charging"
+          "demo_ev": "Start EV Charging",
+          "demo_battery_level_low": "Battery Level Low"
         }
       },
       ja: {
@@ -190,7 +192,8 @@
           "demo_title": "デモ操作",
           "etc_title": "その他の操作",
           "demo_autonomous": "自動運転開始",
-          "demo_ev": "EV充電開始"
+          "demo_ev": "EV充電開始",
+          "demo_battery_level_low": "バッテリーレベル低"
         }
       }
     };
@@ -309,6 +312,7 @@
       document.getElementById("btn3").innerText = nameArr[2];
       document.getElementById("demo1").innerText = i18next.t("demo_autonomous");
       document.getElementById("demo2").innerText = i18next.t("demo_ev");
+      document.getElementById("demo3").innerText = i18next.t("demo_battery_level_low");
     }
   </script>
 </body>
