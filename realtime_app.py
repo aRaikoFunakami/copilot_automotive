@@ -94,7 +94,7 @@ def get_vehicle_data_by_scenario(action):
     """
     for item in vehicle_data_list:
         if item["action"] == action:
-            logging.error(f"Scenario : %s", json.dumps(item["vehicle_data"], ensure_ascii=False, indent=2))
+            logging.info(f"Scenario : %s", json.dumps(item["vehicle_data"], ensure_ascii=False, indent=2))
             print(item["vehicle_data"])
             return item["vehicle_data"]
         
