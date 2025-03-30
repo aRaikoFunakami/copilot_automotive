@@ -271,6 +271,18 @@ yes | pkg update -y && yes | pkg upgrade -y
 
 ## Dockerコンテナの用意
 
+ソースコードの取得
+
+```terminal
+git clone https://github.com/aRaikoFunakami/copilot_automotive.git
+```
+
+ディレクトを移動
+
+```terminal
+cd copilot_automotive/
+```
+
 Docker デーモンの起動
 
 ```terminal: if you uses colima on Mac
@@ -304,3 +316,52 @@ docker run --rm -p 3000:3000 \
    my-realtime-chat
 ```
 
+## AWSに Dockerイメージをプッシュする
+
+参考資料
+
+https://qiita.com/rairaii/items/0c2518a2b3e0060d4c42
+
+
+イメージをプッシュする先の Amazon ECRレジストリに対して Docker クライアントを認証する。
+Amazon ECRレジストリに対して Docker を認証するには、 aws ecr get-login-password コマンドを実行する。
+
+```terminal
+aws ecr get-login-password --region <region> | docker login --username AWS --password-stdin <aws_account_id>.dkr.ecr.<region>.amazonaws.com
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 078617943955.dkr.ecr.us-east-1.amazonaws.com
+```
+
+```terminal
+docker tag <REPOSITORY>:<TAG> <aws_account_id>.dkr.ecr.<region>.amazonaws.com/<ECR_REPOSITORY>:<NEW_TAG>
+```
+
+```terminal
+docker tag my-realtime-chat:latest 078617943955.dkr.ecr.us-east-1.amazonaws.com/my-realtime-chat:latest
+```
+
+```terminal: sample
+$ docker images
+REPOSITORY                                                      TAG            IMAGE ID       CREATED       SIZE
+078617943955.dkr.ecr.us-east-1.amazonaws.com/my-realtime-chat   202503301242   162b74675af7   3 hours ago   1.01GB
+my-realtime-chat                                                latest         162b74675af7   3 hours ago   1.01GB
+```
+
+AWS CLI を使って再認証
+
+```terminal
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 078617943955.dkr.ecr.us-east-1.amazonaws.com
+```
+
+タグ付けされたイメージをECRにプッシュする
+
+```terminal
+docker push 078617943955.dkr.ecr.us-east-1.amazonaws.com/my-realtime-chat:latest
+```
+
+更新する場合のコマンド群
+
+```terminal
+docker build -t my-realtime-chat .  
+docker tag my-realtime-chat:latest 078617943955.dkr.ecr.us-east-1.amazonaws.com/my-realtime-chat:latest
+docker push 078617943955.dkr.ecr.us-east-1.amazonaws.com/my-realtime-chat:latest 
+```
