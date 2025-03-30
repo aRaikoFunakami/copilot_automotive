@@ -16,3 +16,12 @@ def get_local_ip():
 def get_server_ip():
     """Return HOST_IP from env if exists, otherwise fallback to local IP."""
     return os.environ.get("HOST_IP", get_local_ip())
+
+
+def get_server_url():
+    """Return the server URL based on the environment variable or local IP."""
+    server_ip = get_server_ip()
+    if "playground.com" in server_ip:
+        return f"https://{server_ip}"
+    else:
+        return f"http://{server_ip}:3000"

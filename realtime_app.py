@@ -24,7 +24,7 @@ from realtime_prompt import INSTRUCTIONS
 from realtime_driver_assist_ai import driver_assist_ai
 from generate_qr_code import generate_qr_code
 from dummy_login import dummy_login_page, demo_action_page
-from network_utils import get_server_ip
+from network_utils import get_server_url
 from page_video import page_video
 from realtime_api_utils import text_to_realtime_api_json_as_role
 from dummy_data.vehicle_data import vehicle_data as vehicle_data_list
@@ -248,8 +248,8 @@ async def handle_websocket_messages(client_id: str, websocket: WebSocket):
             target_id = data.get("target_id")
             if target_id in connected_clients:
                 action = data.get("action")
-                server_ip = get_server_ip()
-                video_url = f"http://{server_ip}:3000/demo_action/{action}"
+                server_url = get_server_url()
+                video_url = f"{server_url}/demo_action/{action}"
                 data["video_url"] = video_url
 
                 action_str = json.dumps(data, ensure_ascii=False, indent=2)

@@ -24,7 +24,7 @@ from langchain.schema import SystemMessage, HumanMessage
 from langchain_core.output_parsers import JsonOutputParser
 from langchain.prompts import PromptTemplate
 from dummy_data.trailer_db import TrailerDB
-from network_utils import get_server_ip
+from network_utils import get_server_url
 
 user_prompt_template = """
 You are an AI video recommender.
@@ -94,7 +94,7 @@ class VideoRecommender:
         )
 
         # 動的にローカルIP取得（初期化時に取得）
-        self.server_ip = get_server_ip()
+        self.server_url = get_server_url()
 
 
     async def recommend(self, proposal: Dict[str, Any]) -> Dict[str, Any]:
@@ -138,7 +138,7 @@ class VideoRecommender:
         # 成功時のみ video_url を追加
         if response.get("has_recommendation"):
             encoded_title = urllib.parse.quote(response["title"])
-            response["video_url"] = f"http://{self.server_ip}:3000/videos/{encoded_title}"
+            response["video_url"] = f"{self.server_url}/videos/{encoded_title}"
             response["reason"] = proposal.get("reason", "特に指定はありません。") + response["reason"] 
         else:
             response["video_url"] = ""
