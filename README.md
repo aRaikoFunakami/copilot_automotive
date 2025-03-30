@@ -328,7 +328,7 @@ Amazon ECRレジストリに対して Docker を認証するには、 aws ecr ge
 
 ```terminal
 aws ecr get-login-password --region <region> | docker login --username AWS --password-stdin <aws_account_id>.dkr.ecr.<region>.amazonaws.com
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 078617943955.dkr.ecr.us-east-1.amazonaws.com
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin xxxxxxxxxx.dkr.ecr.us-east-1.amazonaws.com
 ```
 
 ```terminal
@@ -336,32 +336,32 @@ docker tag <REPOSITORY>:<TAG> <aws_account_id>.dkr.ecr.<region>.amazonaws.com/<E
 ```
 
 ```terminal
-docker tag my-realtime-chat:latest 078617943955.dkr.ecr.us-east-1.amazonaws.com/my-realtime-chat:latest
+docker tag my-realtime-chat:latest xxxxxxxxxx.dkr.ecr.us-east-1.amazonaws.com/my-realtime-chat:latest
 ```
 
 ```terminal: sample
 $ docker images
 REPOSITORY                                                      TAG            IMAGE ID       CREATED       SIZE
-078617943955.dkr.ecr.us-east-1.amazonaws.com/my-realtime-chat   202503301242   162b74675af7   3 hours ago   1.01GB
+xxxxxxxxxx.dkr.ecr.us-east-1.amazonaws.com/my-realtime-chat   202503301242   162b74675af7   3 hours ago   1.01GB
 my-realtime-chat                                                latest         162b74675af7   3 hours ago   1.01GB
 ```
 
 AWS CLI を使って再認証
 
 ```terminal
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 078617943955.dkr.ecr.us-east-1.amazonaws.com
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin xxxxxxxxxx.dkr.ecr.us-east-1.amazonaws.com
 ```
 
 タグ付けされたイメージをECRにプッシュする
 
 ```terminal
-docker push 078617943955.dkr.ecr.us-east-1.amazonaws.com/my-realtime-chat:latest
+docker push xxxxxxxxxx.dkr.ecr.us-east-1.amazonaws.com/my-realtime-chat:latest
 ```
 
 更新する場合のコマンド群
 
 ```terminal
 docker build -t my-realtime-chat .  
-docker tag my-realtime-chat:latest 078617943955.dkr.ecr.us-east-1.amazonaws.com/my-realtime-chat:latest
-docker push 078617943955.dkr.ecr.us-east-1.amazonaws.com/my-realtime-chat:latest 
+docker tag my-realtime-chat:latest xxxxxxxxxx.dkr.ecr.us-east-1.amazonaws.com/my-realtime-chat:latest
+docker push xxxxxxxxxx.dkr.ecr.us-east-1.amazonaws.com/my-realtime-chat:latest 
 ```
