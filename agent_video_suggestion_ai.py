@@ -11,7 +11,7 @@ Response JSON Format Specification:
     "video_url": str               # URL to access the video page
 }
 """
-
+import os
 import logging
 from pathlib import Path
 import pandas as pd
@@ -24,7 +24,7 @@ from langchain.schema import SystemMessage, HumanMessage
 from langchain_core.output_parsers import JsonOutputParser
 from langchain.prompts import PromptTemplate
 from dummy_data.trailer_db import TrailerDB
-from network_utils import get_local_ip
+from network_utils import get_server_ip
 
 user_prompt_template = """
 You are an AI video recommender.
@@ -94,7 +94,8 @@ class VideoRecommender:
         )
 
         # 動的にローカルIP取得（初期化時に取得）
-        self.server_ip = get_local_ip()
+        self.server_ip = get_server_ip()
+
 
     async def recommend(self, proposal: Dict[str, Any]) -> Dict[str, Any]:
         required_keys = ["max_duration_sec", "preferred_genres"]

@@ -1,9 +1,10 @@
 import qrcode
 import base64
+import os
 from io import BytesIO
 from starlette.templating import Jinja2Templates
 from starlette.responses import HTMLResponse
-from network_utils import get_local_ip
+from network_utils import get_server_ip
 
 # Set up Jinja2 templates directory (推奨: templates/)
 templates = Jinja2Templates(directory="static")
@@ -15,7 +16,8 @@ async def generate_qr_code(request, connected_clients, token):
         return HTMLResponse("<h2>Invalid client ID</h2>", status_code=400)
 
     # Get server local IP
-    server_ip = get_local_ip()
+    server_ip = get_server_ip()
+
 
     # URL to embed in the QR code
     connect_url = f"http://{server_ip}:3000/dummy_login?target_id={target_id}&token={token}"

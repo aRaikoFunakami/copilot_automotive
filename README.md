@@ -268,3 +268,39 @@ ssh -p 8022 u0_a177@192.168.1.81
 ```terminal:Termuxで実行する
 yes | pkg update -y && yes | pkg upgrade -y
 ```
+
+## Dockerコンテナの用意
+
+Docker デーモンの起動
+
+```terminal: if you uses colima on Mac
+colima start
+```
+
+Dockerコンテナの作成
+
+```terminal
+docker build -t my-realtime-chat .
+```
+
+環境変数の確認
+
+```terminal
+echo OPENAI_API_KEY=$OPENAI_API_KEY 
+echo TAVILY_API_KEY=$TAVILY_API_KEY 
+echo AUTH_TOKEN=$AUTH_TOKEN 
+echo HOST_IP=$(ipconfig getifaddr en0) 
+```
+
+Dockerコンテナの起動
+
+```terminal
+docker run --rm -p 3000:3000 \
+   --name chat-container \
+   --env OPENAI_API_KEY=$OPENAI_API_KEY \
+   --env TAVILY_API_KEY=$TAVILY_API_KEY \
+   --env AUTH_TOKEN=$AUTH_TOKEN \
+   --env HOST_IP=$(ipconfig getifaddr en0) \
+   my-realtime-chat
+```
+

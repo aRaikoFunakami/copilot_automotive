@@ -1,4 +1,5 @@
 import socket
+import os
 
 def get_local_ip():
     """Get the local IP address of the server."""
@@ -10,3 +11,8 @@ def get_local_ip():
         return ip
     except Exception:
         return "127.0.0.1"  # 失敗時のフォールバック
+    
+
+def get_server_ip():
+    """Return HOST_IP from env if exists, otherwise fallback to local IP."""
+    return os.environ.get("HOST_IP", get_local_ip())
