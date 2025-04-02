@@ -49,6 +49,8 @@ class TokenAuthMiddleware:
     def __init__(self, app: ASGIApp):
         self.app = app
         self.expected_token = os.environ.get("AUTH_TOKEN")
+        # Health check endpoint
+        self.exempt_paths = ["/health", "/"] 
 
         if not self.expected_token:
             logging.error("\n" + "="*60)
@@ -61,6 +63,12 @@ class TokenAuthMiddleware:
 
     async def __call__(self, scope, receive, send):
         if scope["type"] == "http":
+            path = scope["path"]
+            if path in self.exempt_paths:
+                # Allow unauthenticated access to exempted paths
+                await self.app(scope, receive, send)
+                return
+
             request = Request(scope)
             token = request.headers.get("Authorization") or request.query_params.get("token")
             if token != self.expected_token:
@@ -86,6 +94,7 @@ class TokenAuthMiddleware:
                 return
 
         await self.app(scope, receive, send)
+
 
 
 def get_vehicle_data_by_scenario(action):
@@ -417,6 +426,37 @@ async def dummy_login_with_clients(request):
     return await dummy_login_page(request)
 
 
+async def health_check(request):
+    return JSONResponse({"status": "ok"})
+
+
+async def voice_input_toggle_client(request):
+    """Toggles voice input (microphone) for the client by sending a WebSocket message."""
+    target_id = request.query_params.get("target_id")
+    enable_param = request.query_params.get("enable", "true").lower()
+
+    if not target_id:
+        return JSONResponse({"error": "Missing target_id parameter"}, status_code=400)
+    
+    if target_id not in connected_clients:
+        return JSONResponse({"error": "Target client not found"}, status_code=404)
+
+    enable = enable_param in ["true", "1", "yes"]
+
+    toggle_message = {
+        "type": "voice_input_toggle",
+        "enable": enable
+    }
+
+    try:
+        await connected_clients[target_id]["websocket"].send_text(json.dumps(toggle_message))
+        logging.info(f"Sent voice_input_toggle to client {target_id} with enable={enable}")
+        return JSONResponse({"status": "ok", "target_id": target_id, "enable": enable})
+    except Exception as e:
+        logging.error(f"Failed to send voice_input_toggle message: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 # Define application routes
 routes = [
     WebSocketRoute("/ws", websocket_endpoint),
@@ -424,7 +464,9 @@ routes = [
     Route("/dummy_login", dummy_login_with_clients, methods=["GET"]),
     Route("/demo_action/{action}", demo_action_page),
     Route("/videos/{title}", page_video, methods=["GET"]),
-    Route("/", homepage),
+    Route("/health", health_check, methods=["GET"]),
+    Route("/voice_input_toggle", voice_input_toggle_client, methods=["GET"]),
+    Route("/", health_check, methods=["GET"]),
 ]
 
 # Create Starlette application

@@ -150,6 +150,8 @@
     <div id="etc-title" class="section-title">その他の操作</div>
     <div class="demo-selection">
       <button id="stop1" class="stop-button" onclick="sendStopConversation()">Stop</button>
+      <button id="voice-on-btn" class="stop-button" onclick="sendVoiceInputToggle(true)">音声入力ON</button>
+      <button id="voice-off-btn" class="stop-button" onclick="sendVoiceInputToggle(false)">音声入力OFF</button>
     </div>
 
     <p id="status"></p>
@@ -177,7 +179,13 @@
           "etc_title": "Other Actions",
           "demo_autonomous": "Start Autonomous Driving",
           "demo_ev": "Start EV Charging",
-          "demo_battery_level_low": "Battery Level Low"
+          "demo_battery_level_low": "Battery Level Low",
+          "voice_input_on": "Enable Voice Input",
+          "voice_input_off": "Disable Voice Input",
+          "voice_input_on_msg": "Voice input ON request sent.",
+          "voice_input_off_msg": "Voice input OFF request sent.",
+          "error_prefix": "Error: ",
+          "network_error": "Network error"
         }
       },
       ja: {
@@ -193,7 +201,13 @@
           "etc_title": "その他の操作",
           "demo_autonomous": "自動運転開始",
           "demo_ev": "EV充電開始",
-          "demo_battery_level_low": "バッテリーレベル低"
+          "demo_battery_level_low": "バッテリーレベル低",
+          "voice_input_on": "音声入力ON",
+          "voice_input_off": "音声入力OFF",
+          "voice_input_on_msg": "音声入力ONリクエストを送信しました。",
+          "voice_input_off_msg": "音声入力OFFリクエストを送信しました。",
+          "error_prefix": "エラー: ",
+          "network_error": "通信エラー"
         }
       }
     };
@@ -295,6 +309,28 @@
       document.getElementById("status").innerText = "デモ送信: " + action;
     }
 
+    function sendVoiceInputToggle(enable) {
+      const serverHost = location.origin;
+      const url = `${serverHost}/voice_input_toggle?target_id=${encodeURIComponent(targetId)}&enable=${enable}&token=${token}`;
+
+      fetch(url)
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === "ok") {
+            const label = enable ? i18next.t("voice_input_on_msg") : i18next.t("voice_input_off_msg");
+            document.getElementById("status").innerText = label;
+          } else {
+            const errorPrefix = i18next.t("error_prefix");
+            document.getElementById("status").innerText = errorPrefix + (data.error || "unknown");
+          }
+        })
+        .catch(err => {
+          console.error("HTTP error:", err);
+          document.getElementById("status").innerText = i18next.t("network_error");
+        });
+    }
+
+
     function changeLanguage(selectedLang) {
       lang = selectedLang;
       i18next.changeLanguage(lang, updateLanguage);
@@ -313,6 +349,8 @@
       document.getElementById("demo1").innerText = i18next.t("demo_autonomous");
       document.getElementById("demo2").innerText = i18next.t("demo_ev");
       document.getElementById("demo3").innerText = i18next.t("demo_battery_level_low");
+      document.getElementById("voice-on-btn").innerText = i18next.t("voice_input_on");
+      document.getElementById("voice-off-btn").innerText = i18next.t("voice_input_off");
     }
   </script>
 </body>
