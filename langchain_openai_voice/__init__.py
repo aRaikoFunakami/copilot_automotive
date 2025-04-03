@@ -13,6 +13,8 @@ from langchain_core.utils import secret_from_env
 
 from pydantic import BaseModel, Field, SecretStr, PrivateAttr
 
+DEBUG_BY_WSCAT = False
+
 
 DEFAULT_MODEL = "gpt-4o-realtime-preview-2024-10-01"
 DEFAULT_URL = "wss://api.openai.com/v1/realtime"
@@ -315,7 +317,10 @@ class OpenAIVoiceReactAgent(BaseModel):
 
                     # Send ‘response.create’ to generate a text response
                     if is_input_text("user", data):
-                        event = RESPONSE_CREATE_AUDIO
+                        if DEBUG_BY_WSCAT:
+                            event = RESPONSE_CREATE_TEXT
+                        else:
+                            event = RESPONSE_CREATE_AUDIO
                     else: 
                         event = RESPONSE_CREATE_TEXT
                     logging.info("Sending response.create for text input: %s", json.dumps(event, indent=2, ensure_ascii=False))
@@ -325,15 +330,19 @@ class OpenAIVoiceReactAgent(BaseModel):
                     # Returns the results of the tool execution to both model + client
                     logging.info(f"stream_key:{stream_key} data:{json.dumps(data, indent=2, ensure_ascii=False)}")
                     await model_send(data)
-                    await model_send({"type": "response.create", "response": {}})
+                    if DEBUG_BY_WSCAT:
+                        await model_send(RESPONSE_CREATE_TEXT)
+                    else:
+                        await model_send(RESPONSE_CREATE_AUDIO)
+                    
 
-                    # If the output from the tool contains ‘return_direct’: true,
                     # If the output from the tool contains ‘return_direct’: True, it can be displayed to the client as it is, etc.
                     t = data["type"]
                     if t == "conversation.item.create":
                         output_str = data["item"].get("output", "")
                         try:
                             output_json = json.loads(output_str)
+                            print(f"★★★　output_json: {json.dumps(output_json, indent=2, ensure_ascii=False)}")
                             if isinstance(output_json, dict):
                                 return_direct = output_json.get("return_direct", False)
                                 if return_direct:
