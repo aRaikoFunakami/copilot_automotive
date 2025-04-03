@@ -289,6 +289,17 @@ Docker デーモンの起動
 colima start
 ```
 
+下記のようにログインエラーとなる場合には colima に明示的に dns を設定すると治った
+```
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 078617943955.dkr.ecr.us-east-1.amazonaws.com
+Error response from daemon: Get "https://078617943955.dkr.ecr.us-east-1.amazonaws.com/v2/": dial tcp: lookup 078617943955.dkr.ecr.us-east-1.amazonaws.com on 127.0.0.53:53: no such host
+```
+
+```termina;
+colima stop
+colima start --dns 8.8.8.8
+```
+
 Dockerコンテナの作成
 
 ```terminal

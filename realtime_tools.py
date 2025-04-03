@@ -6,6 +6,7 @@ from langchain_community.tools import TavilySearchResults
 import function_launch_navigation
 import function_aircontrol
 import realtime_function_seach_videos
+import realtime_function_content_search
 
 
 tavily_tool = TavilySearchResults(
@@ -23,4 +24,5 @@ TOOLS = [
             function_aircontrol.AirControlDelta(),
             function_launch_navigation.LaunchNavigation(),
             realtime_function_seach_videos.SearchVideos(),
+            realtime_function_content_search.FindBestContentTool(),
         ]

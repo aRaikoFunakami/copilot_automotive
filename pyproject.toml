@@ -27,6 +27,8 @@ qrcode = "^8.0"
 pillow = "^11.1.0"
 pandas = "^2.2.3"
 beautifulsoup4 = "^4.13.3"
+aioconsole = "^0.8.1"
+tavily-python = "^0.5.4"
 
 
 [build-system]
