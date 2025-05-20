@@ -29,6 +29,7 @@ pandas = "^2.2.3"
 beautifulsoup4 = "^4.13.3"
 aioconsole = "^0.8.1"
 tavily-python = "^0.5.4"
+langgraph-prebuilt = "^0.1.8"
 
 
 [build-system]
