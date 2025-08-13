@@ -13,8 +13,14 @@ from langchain_core.utils import secret_from_env
 
 from pydantic import BaseModel, Field, SecretStr, PrivateAttr
 
-DEBUG_BY_WSCAT = False
+import os
 
+if os.getenv("OPENAI_VOICE_TEXT_MODE") is None:
+    DEBUG_BY_WSCAT = False
+    print("OPENAI_VOICE_TEXT_MODE is not set. Defaulting to False.")
+else:
+    DEBUG_BY_WSCAT = True
+    print("OPENAI_VOICE_TEXT_MODE is set. Defaulting to True.")
 
 DEFAULT_MODEL = "gpt-4o-realtime-preview-2024-10-01"
 DEFAULT_URL = "wss://api.openai.com/v1/realtime"
