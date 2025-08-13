@@ -46,18 +46,18 @@ GASは、AAOSにおけるGoogleのサービスパッケージ。これは、Goog
 
 ### ホストPCにCopilotサーバーを用意する
 
-ソースコードの取得とpython環境のインストールを行う。git, python, poetry などはすでにインストールされていることを前提とする。
+ソースコードの取得とpython環境のインストールを行う。git, python, uv などはすでにインストールされていることを前提とする。
 
 ```terminal
 git clone https://github.com/aRaikoFunakami/copilot_automotive.git
 cd copilot_automotive
-poetry install
+uv sync
 ```
 
 Copilotサーバーを実行する
 
 ```terminal
-poetry run python app.py
+uv run python app.py
 ```
 
 ### Android機器にクライアントアプリケーションを用意する
