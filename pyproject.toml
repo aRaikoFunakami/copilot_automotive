@@ -3,7 +3,7 @@ name = "copilot-automotive"
 version = "0.1.0"
 description = ""
 authors = [{ name = "aRaiko.Funakami", email = "raiko.funakami@access-company.com" }]
-requires-python = "~=3.11"
+requires-python = ">=3.13,<4"
 readme = "README.md"
 license = "MIT"
 dependencies = [
@@ -15,7 +15,7 @@ dependencies = [
     "webdriver-manager>=4.0.1,<5",
     "ppad>=0.0.11,<0.0.12",
     "pure-python-adb>=0.3.0.dev0,<0.4",
-    "langchain-openai>=0.2.9,<0.3",
+    "langchain-openai>=0.3.9,<0.4",
     "langchain-community>=0.3.8,<0.4",
     "langgraph>=0.2.53,<0.3",
     "starlette>=0.41.3,<0.42",
@@ -30,5 +30,9 @@ dependencies = [
     "tavily-python>=0.5.4,<0.6",
     "langgraph-prebuilt>=0.1.8,<0.2",
     "langgraph-supervisor>=0.0.4",
+    "media-search-agent",
 ]
+
+[tool.uv.sources]
+media-search-agent = { path = "tmdb_agent", editable = true }
 
