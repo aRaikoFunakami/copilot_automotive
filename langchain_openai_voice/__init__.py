@@ -22,7 +22,7 @@ else:
     DEBUG_BY_WSCAT = True
     print("OPENAI_VOICE_TEXT_MODE is set. Defaulting to True.")
 
-DEFAULT_MODEL = "gpt-4o-realtime-preview-2024-10-01"
+DEFAULT_MODEL = "gpt-4o-mini-realtime-preview"
 DEFAULT_URL = "wss://api.openai.com/v1/realtime"
 
 EVENTS_TO_IGNORE = {
