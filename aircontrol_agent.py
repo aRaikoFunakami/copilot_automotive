@@ -32,23 +32,28 @@ def create_aircontrol_agent(model_name: str = "gpt-4o-mini", temperature: float 
     """
     # System prompt for air conditioning control
     system_prompt = """
-あなたは車載エアコン制御の専門アシスタントです。
+You are a specialized assistant for vehicle air conditioning control.
 
-以下のツールを使用してエアコンを制御してください：
-- intent_aircontrol: 絶対温度を設定する（例：22度に設定）
-- intent_aircontrol_delta: 現在の設定温度からの相対変更（例：2度上げる、3度下げる）
+Use the following tools to control the air conditioning:
+- intent_aircontrol: Set absolute temperature (e.g., set to 22 degrees)
+- intent_aircontrol_delta: Adjust temperature relative to current setting (e.g., raise by 2 degrees, lower by 3 degrees)
 
-制約：
-- 設定可能温度範囲：18°C〜30°C
-- 温度は0.5度刻みで設定してください
-- ユーザーの要求を理解し、適切なツールを選択してください
+Constraints:
+- Settable temperature range: 18°C to 30°C
+- Set temperature in 0.5-degree increments
+- Understand user requests and select the appropriate tool
 
-ユーザーの要求例：
-- "エアコンを22度に設定して" → intent_aircontrol を使用
-- "もう少し涼しくして" → intent_aircontrol_delta を使用（-1〜-3度程度）
-- "暖かくして" → intent_aircontrol_delta を使用（+1〜+3度程度）
+User request examples:
+- "Set air conditioning to 22 degrees" → use intent_aircontrol
+- "Make it a little cooler" → use intent_aircontrol_delta (about -1 to -3 degrees)
+- "Make it warmer" → use intent_aircontrol_delta (about +1 to +3 degrees)
 
-常に日本語で丁寧に応答してください。
+Important rule:
+After executing a tool, if the tool output contains 'return_direct': true,
+return the tool output as-is without any additional comments or explanations.
+If the tool output is JSON, return the JSON as a string exactly as it is.
+
+Always respond in the same language as the user's input. However, for return_direct cases, return the tool output exactly as provided.
     """
     
     # Initialize components
@@ -69,9 +74,47 @@ def create_aircontrol_agent(model_name: str = "gpt-4o-mini", temperature: float 
     return agent_executor
 
 
+# Simple JSON validation
+def validate_basic_json_format(response_str: str) -> tuple[bool, str]:
+    """
+    Basic validation for AirControl agent response JSON format.
+    Checks only essential fields existence - content validation should be done manually.
+    
+    Args:
+        response_str: The response string to validate
+        
+    Returns:
+        tuple: (is_valid: bool, error_message: str)
+    """
+    import json
+    
+    try:
+        # Parse JSON
+        response_data = json.loads(response_str)
+        
+        # Check basic required fields only
+        required_fields = ["type", "return_direct", "intent"]
+        missing_fields = [field for field in required_fields if field not in response_data]
+        
+        if missing_fields:
+            return False, f"Missing fields: {', '.join(missing_fields)}"
+        
+        # Basic check if intent has any content
+        intent = response_data.get("intent", {})
+        if not intent:
+            return False, "Empty intent field"
+        
+        return True, "Basic JSON format OK"
+        
+    except json.JSONDecodeError as e:
+        return False, f"Invalid JSON: {str(e)}"
+    except Exception as e:
+        return False, f"Validation error: {str(e)}"
+
+
 # Example usage and testing with supervisor
 async def main():
-    """Test AirControl Agent through LangGraph supervisor"""
+    """Test AirControl Agent through LangGraph supervisor with validation"""
     logging.basicConfig(level=logging.INFO)
     
     # Import required components for supervisor
@@ -95,20 +138,30 @@ async def main():
             
             "ASSIGNMENT RULES:\n"
             "1. For any air conditioning or temperature related requests, delegate to AirControlAgent.\n"
-            "2. Always respond in the same language as the user's query.\n"
-            "3. Do not perform any work yourself - always delegate to the appropriate agent.\n"
+            "2. Always respond in the same language as the user's query (Japanese, English, etc.).\n"
+            "3. Do not perform any work yourself - always delegate to the appropriate agent.\n\n"
+            
+            "IMPORTANT RULE FOR RETURN_DIRECT:\n"
+            "If the worker's response contains JSON with 'return_direct': true, you MUST return that exact response without any modifications, additions, or explanations.\n"
+            "Do not add any commentary or processing. Simply pass through the worker's response as-is to the user.\n"
+            "Example: If worker returns JSON like {'type': 'tools.aircontrol', 'return_direct': true, ...}, return exactly that JSON string.\n"
         ),
         add_handoff_back_messages=True,
         output_mode="full_history",
     ).compile()
     
-    # Test messages
+    # Test messages (Japanese and English)
     test_messages = [
         "エアコンを22度に設定してください",
+        "Set the air conditioning to 20 degrees",
         "もう少し涼しくしてください", 
-        "3度暖かくして",
+        "Make it 2 degrees warmer",
         "18度にして"
     ]
+    
+    # Track test results
+    total_tests = len(test_messages)
+    passed_tests = 0
     
     for i, message in enumerate(test_messages, 1):
         print(f"\n{i}. User: {message}")
@@ -135,7 +188,33 @@ async def main():
                 break
         
         print(f"   Supervisor Response: {final_response}")
+        
+        # Simple validation - only check basic JSON format
+        if final_response:
+            is_valid, error_msg = validate_basic_json_format(final_response)
+            if is_valid:
+                print("   ✅ TEST RESULT: JSON Format OK")
+                print("   📝 MANUAL CHECK: Please verify the temperature values and tool selection are correct")
+                passed_tests += 1
+            else:
+                print(f"   ❌ TEST RESULT: JSON Format NG - {error_msg}")
+        else:
+            print("   ❌ TEST RESULT: No response received")
+        
         print("   " + "="*50)
+    
+    # Print overall test summary
+    print(f"\n{'='*60}")
+    print(f"JSON FORMAT TEST SUMMARY: {passed_tests}/{total_tests} tests passed")
+    if passed_tests == total_tests:
+        print("🎉 ALL JSON FORMATS OK!")
+        print("📝 IMPORTANT: Please manually verify:")
+        print("   - Temperature values are appropriate")
+        print("   - Tool selection matches user intent")
+        print("   - return_direct is set to true")
+    else:
+        print(f"⚠️  {total_tests - passed_tests} tests failed JSON format check")
+    print(f"{'='*60}")
 
 
 if __name__ == "__main__":
