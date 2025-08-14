@@ -29,5 +29,6 @@ dependencies = [
     "aioconsole>=0.8.1,<0.9",
     "tavily-python>=0.5.4,<0.6",
     "langgraph-prebuilt>=0.1.8,<0.2",
+    "langgraph-supervisor>=0.0.4",
 ]
 

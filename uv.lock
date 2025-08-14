@@ -291,6 +291,7 @@ dependencies = [
     { name = "langchain-openai" },
     { name = "langgraph" },
     { name = "langgraph-prebuilt" },
+    { name = "langgraph-supervisor" },
     { name = "langid" },
     { name = "openai" },
     { name = "pandas" },
@@ -317,6 +318,7 @@ requires-dist = [
     { name = "langchain-openai", specifier = ">=0.2.9,<0.3" },
     { name = "langgraph", specifier = ">=0.2.53,<0.3" },
     { name = "langgraph-prebuilt", specifier = ">=0.1.8,<0.2" },
+    { name = "langgraph-supervisor", specifier = ">=0.0.4" },
     { name = "langid", specifier = ">=1.1.6,<2" },
     { name = "openai", specifier = ">=1.16.1,<2" },
     { name = "pandas", specifier = ">=2.2.3,<3" },
@@ -748,6 +750,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/f0/c6/a11de2c770e1ac2774e2f19fdbd982b8df079e4206376456e14af395a3f0/langgraph_sdk-0.1.61.tar.gz", hash = "sha256:87dd1f07ab82da8875ac343268ece8bf5414632017ebc9d1cef4b523962fd601", size = 44136, upload-time = "2025-04-03T01:53:09.317Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fb/2b/85e796d8b4aad892c5d2bccc0def124fcdc2c9852dfa121adadfc41085b2/langgraph_sdk-0.1.61-py3-none-any.whl", hash = "sha256:f2d774b12497c428862993090622d51e0dbc3f53e0cee3d74a13c7495d835cc6", size = 47249, upload-time = "2025-04-03T01:53:08.067Z" },
+]
+
+[[package]]
+name = "langgraph-supervisor"
+version = "0.0.4"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "langchain-core" },
+    { name = "langgraph" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/c6/e3/9b0c9f0b557b3b2853ab9adb00f471affaf2c4e90894d1a52be1338cb64c/langgraph_supervisor-0.0.4.tar.gz", hash = "sha256:89c43d88a4dda0f08773df783201a0228c99d6bbd3e32625e688c32c3f87137a", size = 8409, upload-time = "2025-02-25T17:03:28.148Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5b/3d/9369f772e551099c3766b31cbf88142d9a88d092f538029f9ddf873c262b/langgraph_supervisor-0.0.4-py3-none-any.whl", hash = "sha256:1523b390f222a5854f169b9af6c4f0ce8be4ecf365d49a76b06f22d58af36937", size = 7597, upload-time = "2025-02-25T17:03:26.42Z" },
 ]
 
 [[package]]
