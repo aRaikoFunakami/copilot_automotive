@@ -28,6 +28,7 @@ from network_utils import get_server_url
 from page_video import page_video
 from realtime_api_utils import text_to_realtime_api_json_as_role
 from dummy_data.vehicle_data import vehicle_data as vehicle_data_list
+from supervisor_agent import create_supervisor_tool
 
 # Global dictionary to manage connected clients/sessions
 # Key: client_id, Value: dict with websockets, queues, agent tasks, etc.

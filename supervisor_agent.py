@@ -149,7 +149,8 @@ class SupervisorTool(BaseTool):
 
 
 # SupervisorToolのインスタンスを作成
-supervisor_tool = SupervisorTool()
+def create_supervisor_tool() -> SupervisorTool:
+    return SupervisorTool()
 
 
 # OpenAIVoiceReactAgentからSupervisorを呼び出すテスト
@@ -180,7 +181,7 @@ async def test_voice_react_agent_with_supervisor():
         voice_agent = OpenAIVoiceReactAgent(
             model="gpt-4o-mini-realtime-preview",
             instructions="Use supervisor tool for requests. Be brief and direct. Return supervisor responses exactly as-is without any modifications or additions.",
-            tools=[supervisor_tool]
+            tools=[create_supervisor_tool()]
         )
         
         # 結果収集用
