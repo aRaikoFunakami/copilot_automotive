@@ -19,8 +19,7 @@ from langchain_openai_voice import OpenAIVoiceReactAgent
 from realtime_utils import (
     websocket_stream  # assume your existing function
 )
-from realtime_tools import TOOLS
-from realtime_prompt import INSTRUCTIONS
+
 from realtime_driver_assist_ai import driver_assist_ai
 from generate_qr_code import generate_qr_code
 from dummy_login import dummy_login_page, demo_action_page
@@ -122,9 +121,9 @@ async def create_new_session(client_id: str, websocket: WebSocket):
 
     # Prepare the agent
     agent = OpenAIVoiceReactAgent(
-        model="gpt-4o-mini-realtime-preview",  # or "gpt-4o-realtime-preview"
-        tools=TOOLS,
-        instructions=INSTRUCTIONS,
+        model="gpt-4o-mini-realtime-preview",
+        instructions="Use supervisor tool for requests. Be brief and direct. Return supervisor responses exactly as-is without any modifications or additions.",
+        tools=[create_supervisor_tool()]
     )
 
     # Callback to send driver assist messages back to client
