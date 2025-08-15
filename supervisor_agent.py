@@ -1,4 +1,4 @@
-
+import logging
 from langgraph_supervisor import create_supervisor
 from langchain.chat_models import init_chat_model
 from langchain_openai import ChatOpenAI
@@ -21,6 +21,8 @@ from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field
 from typing import Any, Dict
 import json
+
+logger = logging.getLogger(__name__)
 
 # TMDBエージェントの初期化
 tmdb_agent = create_tmdb_agent(
@@ -100,6 +102,7 @@ class SupervisorTool(BaseTool):
     async def _arun(self, query: str) -> Dict[str, Any]:
         """Run the supervisor with the given query"""
         try:
+            print(f"[SupervisorTool] query: {query}")
             # Supervisorに送信
             result_messages = []
             for chunk in supervisor.stream({
@@ -120,6 +123,7 @@ class SupervisorTool(BaseTool):
                     final_response = msg.content
                     break
             
+            print(f"[SupervisorTool] Final response: {final_response}")
             # JSONレスポンスを試行
             if final_response:
                 try:
@@ -129,7 +133,9 @@ class SupervisorTool(BaseTool):
                         return json_response
                 except json.JSONDecodeError:
                     pass
-            
+                
+            return final_response or "No response generated"
+        
             return {
                 "response": final_response or "No response generated",
                 "status": "success",
@@ -156,11 +162,9 @@ def create_supervisor_tool() -> SupervisorTool:
 # OpenAIVoiceReactAgentからSupervisorを呼び出すテスト
 async def test_voice_react_agent_with_supervisor():
     """Test OpenAIVoiceReactAgent with supervisor as a tool - Simple and Reliable"""
-    import logging
     import asyncio
     from langchain_openai_voice import OpenAIVoiceReactAgent
     
-    logging.basicConfig(level=logging.INFO)
     print("=== Simple and Reliable OpenAIVoiceReactAgent Test ===")
     
     # テスト用クエリ
@@ -359,4 +363,5 @@ async def run_tests():
 
 if __name__ == "__main__":
     import asyncio
+    logging.basicConfig(level=logging.INFO)
     asyncio.run(run_tests())

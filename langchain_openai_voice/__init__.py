@@ -348,7 +348,7 @@ class OpenAIVoiceReactAgent(BaseModel):
                         output_str = data["item"].get("output", "")
                         try:
                             output_json = json.loads(output_str)
-                            print(f"★★★　output_json: {json.dumps(output_json, indent=2, ensure_ascii=False)}")
+                            print(f"★★★ output_json: {json.dumps(output_json, indent=2, ensure_ascii=False)}")
                             if isinstance(output_json, dict):
                                 return_direct = output_json.get("return_direct", False)
                                 if return_direct:
@@ -387,8 +387,8 @@ class OpenAIVoiceReactAgent(BaseModel):
                         # Events to ignore
                         pass
                     elif t == "input_audio_buffer.speech_started":
-                        logging.warning("input_audio_buffer.speech_started.\n Consider handling interruptions or other processes on the client side")
+                        logging.warning("[ignore] input_audio_buffer.speech_started. Consider handling interruptions or other processes on the client side")
                     else:
-                        logging.error("Unhandled event type: %s", t)
+                        logging.warning("[ignore] Unhandled event type: %s", t)
 
 __all__ = ["OpenAIVoiceReactAgent"]
