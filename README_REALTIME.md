@@ -9,6 +9,7 @@
 ```bash
 git clone https://github.com/aRaikoFunakami/copilot_automotive.git
 cd copilot_automotive
+./setup.sh
 uv sync
 ```
 
