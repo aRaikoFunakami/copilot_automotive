@@ -67,4 +67,4 @@ Connected (press CTRL+C to quit)
 - インターネット検索
 - ナビゲーション案内
 - YouTube 動画の検索
-
+- TMDB検索
