@@ -38,7 +38,6 @@ connected_clients = {}
 AUTH_TOKEN = os.environ.get("AUTH_TOKEN")
 
 if not AUTH_TOKEN:
-    logging.basicConfig(level=logging.ERROR)
     logging.error("\n" + "="*60)
     logging.error("🚨 AUTH_TOKEN is not set in environment variables.")
     logging.error("    -> Please set AUTH_TOKEN before starting the server.")
@@ -121,7 +120,7 @@ async def create_new_session(client_id: str, websocket: WebSocket):
 
     # Prepare the agent
     agent = OpenAIVoiceReactAgent(
-        model="gpt-4o-mini-realtime-preview",
+        model="gpt-4o-realtime-preview",
         instructions="Use supervisor tool for requests. Be brief and direct. Return supervisor responses exactly as-is without any modifications or additions.",
         tools=[create_supervisor_tool()]
     )
