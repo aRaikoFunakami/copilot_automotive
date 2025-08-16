@@ -5,6 +5,16 @@ from pydantic import BaseModel, Field
 import asyncio
 
 from langchain.tools import BaseTool
+from sudachipy import tokenizer, dictionary
+from langdetect import detect
+from langdetect.lang_detect_exception import LangDetectException
+
+# 形態素解析して SearcH API に適した形式に変換するための関数
+TOKENIZER = dictionary.Dictionary().create()
+MODE = tokenizer.Tokenizer.SplitMode.B
+
+def tokenize_text(text):
+    return [m.surface() for m in TOKENIZER.tokenize(text, MODE)]
 
 class SearchVideosInput(BaseModel):
     service: str = Field(
@@ -23,6 +33,20 @@ class SearchVideos(BaseTool):
 
     def _generate_response(self, service: str, input: str) -> dict:
         """Generate a standardized response for video search."""
+        lang_code = "en" 
+        # 言語コードを決定
+        try:
+            lang_code = detect(input)
+            # サポートされている言語のみ対応、それ以外は英語
+        except LangDetectException:
+            # 言語検出に失敗した場合は英語をデフォルトとする
+            lang_code = "en"
+
+        print(f"Detected language code: {lang_code}")
+        # 日本語の場合は形態素解析を行う
+        if( lang_code == "ja" ):
+            input = " ".join(tokenize_text(input))
+
         return {
             "type": "tools.search_videos",
             "description": """
