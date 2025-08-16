@@ -362,7 +362,7 @@ async def websocket_endpoint(websocket: WebSocket):
     - Accepts WebSocket connection.
     - Extracts or assigns a client_id (preferably from query params).
     - If session does not exist, creates a new one; otherwise reuses it.
-    - Continues reading messages until disconnect (but does NOT kill the AI session).
+    - Continues reading messages until disconnect (but does not kill the AI session).
     """
     # Accept the WebSocket
     await websocket.accept()

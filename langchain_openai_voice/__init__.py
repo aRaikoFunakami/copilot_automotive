@@ -348,12 +348,16 @@ class OpenAIVoiceReactAgent(BaseModel):
                         output_str = data["item"].get("output", "")
                         try:
                             output_json = json.loads(output_str)
-                            print(f"★★★ output_json: {json.dumps(output_json, indent=2, ensure_ascii=False)}")
+                            print(f"★★★ output_json: {json.dumps(output_json, ensure_ascii=False)}")
                             if isinstance(output_json, dict):
                                 return_direct = output_json.get("return_direct", False)
+                                print(f"★★★ return_direct: {return_direct}")
                                 if return_direct:
+                                    print(f"★★★ output_str: {json.dumps(output_json, ensure_ascii=False)}")
+                                    # Send the JSON output as a special marker for extraction
                                     await send_output_chunk(output_str)
                         except Exception:
+                            logging.error(f"Failed to parse output_str as JSON: {output_str}")
                             pass
 
                 elif stream_key == "output_speaker":

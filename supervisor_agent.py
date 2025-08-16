@@ -51,7 +51,7 @@ agents_list = [
 
 
 supervisor = create_supervisor(
-    model=init_chat_model("openai:gpt-4o-mini"),
+    model=init_chat_model("openai:gpt-4o"),
     agents=agents_list,
     prompt=(
         "You are a supervisor managing automotive and entertainment agents:\n"
@@ -135,10 +135,18 @@ class SupervisorTool(BaseTool):
             # JSONレスポンスを試行
             if final_response:
                 try:
-                    # JSONとしてパースできるかチェック
-                    json_response = json.loads(final_response)
-                    if isinstance(json_response, dict) and json_response.get("return_direct"):
-                        return json_response
+                    # コードブロック形式の場合、JSON部分のみを抽出
+                    if final_response.strip().startswith("```json") and final_response.strip().endswith("```"):
+                        # ```json と ``` を除去してJSON部分のみ取得
+                        json_content = final_response.strip()[7:-3].strip()
+                        json_response = json.loads(json_content)
+                        if isinstance(json_response, dict) and json_response.get("return_direct"):
+                            return json_response
+                    else:
+                        # 通常のJSON形式の場合
+                        json_response = json.loads(final_response)
+                        if isinstance(json_response, dict) and json_response.get("return_direct"):
+                            return json_response
                 except json.JSONDecodeError:
                     pass
 
