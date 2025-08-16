@@ -8,7 +8,7 @@ from tmdb_agent.agent import create_tmdb_agent
 
 # Import local agents
 from aircontrol_agent import create_aircontrol_agent
-from youtube_agent import create_youtube_agent
+from video_search_agent import create_video_search_agent
 from carnavigation_agent import create_carnavigation_agent
 
 # Import supervisor adaptor functions - REQUIRED!
@@ -21,8 +21,6 @@ from langchain_core.tools import BaseTool
 from pydantic import BaseModel, Field
 from typing import Any, Dict
 import json
-
-logger = logging.getLogger(__name__)
 
 # TMDBエージェントの初期化
 tmdb_agent = create_tmdb_agent(
@@ -40,13 +38,13 @@ tmdb_adapter = adapt_agent_executor_for_supervisor(
 
 # 自動車関連エージェントの初期化
 aircontrol_agent = create_aircontrol_agent(model_name="gpt-4o-mini", temperature=0.1)
-youtube_agent = create_youtube_agent(model_name="gpt-4o-mini", temperature=0.1)
+video_search_agent = create_video_search_agent(model_name="gpt-4o-mini", temperature=0.1)
 carnavigation_agent = create_carnavigation_agent(model_name="gpt-4o-mini", temperature=0.1)
 
 # エージェントリストを構築（TMDBエージェントを含む）
 agents_list = [
     aircontrol_agent,
-    youtube_agent, 
+    video_search_agent, 
     carnavigation_agent,
     tmdb_adapter,  # TMDBエージェントは常に存在すると仮定
 ]
@@ -58,14 +56,17 @@ supervisor = create_supervisor(
     prompt=(
         "You are a supervisor managing automotive and entertainment agents:\n"
         "- AirControlAgent: Handles air conditioning control requests including temperature settings and adjustments.\n"
-        "- YouTubeAgent: Handles YouTube video search requests and content discovery.\n"
+        "- VideoSearchAgent: Handles video search requests for videocenter (default) and YouTube (when explicitly mentioned) platforms.\n"
         "- CarNavigationAgent: Handles navigation requests including destination routing and GPS navigation.\n"
         "- TMDBSearchAgent: Handles movie, TV show, and celebrity information searches using TMDB API.\n"
         "\n"
         
         "ASSIGNMENT RULES:\n"
         "1. For any air conditioning or temperature related requests, delegate to AirControlAgent.\n"
-        "2. For any YouTube, video search, or content discovery related requests, delegate to YouTubeAgent.\n"
+        "2. For video search requests:\n"
+        "   - Delegate to VideoSearchAgent for all video searches\n"
+        "   - VideoSearchAgent automatically selects service: videocenter (movies/TV) or youtube (general videos)\n"
+        "   - Movies/TV shows → videocenter, General videos → youtube\n"
         "3. For any navigation, routing, or destination related requests, delegate to CarNavigationAgent.\n"
         "4. For movie, TV show, actor, director, or entertainment industry queries, delegate to TMDBSearchAgent.\n"
         "5. Always respond in the same language as the user's query (Japanese, English, etc.).\n"
@@ -73,10 +74,17 @@ supervisor = create_supervisor(
         
         "TASK ROUTING EXAMPLES:\n"
         "- 'Set air conditioning to 22 degrees' → AirControlAgent\n"
-        "- 'Search for cooking videos on YouTube' → YouTubeAgent\n"
+        "- 'Search for cooking videos' → VideoSearchAgent (will use youtube)\n"
+        "- 'スターウォーズを検索して' → VideoSearchAgent (will use videocenter)\n"
+        "- 'スターウォーズを見たい' → VideoSearchAgent (will use videocenter)\n"
+        "- '猫の動画を探して' → VideoSearchAgent (will use youtube)\n"
         "- 'Navigate to Tokyo Station' → CarNavigationAgent\n"
         "- 'Tell me about the movie Inception' → TMDBSearchAgent\n"
         "- 'What movies has Tom Hanks appeared in?' → TMDBSearchAgent\n\n"
+        
+        "VIDEO SERVICE SELECTION (handled by VideoSearchAgent):\n"
+        "- videocenter: Movies and TV shows content\n"
+        "- youtube: General video content (tutorials, music, entertainment, etc.)\n\n"
         
         "IMPORTANT RULE FOR RETURN_DIRECT:\n"
         "If the worker's response contains JSON with 'return_direct': true, you MUST return that exact response without any modifications, additions, or explanations.\n"
@@ -133,7 +141,7 @@ class SupervisorTool(BaseTool):
                         return json_response
                 except json.JSONDecodeError:
                     pass
-                
+
             return final_response or "No response generated"
         
             return {
@@ -285,12 +293,15 @@ async def main():
     # テストメッセージ（TMDB検索を含む）
     test_messages = [
         "エアコンを22度に設定してください",
-        "YouTubeで料理のレシピ動画を検索して",
+        "スターウォーズを検索して",  # videocenter (movie)
+        "猫の動画を探して",  # youtube (general)
+        "料理のレシピ動画を検索して",  # youtube (general)
         "東京駅までナビゲーションを開始してください",
         "映画「君の名は」について教えて",
         "トム・ハンクスが出演している映画を教えて",
         "Set the air conditioning to 20 degrees",
-        "Search for funny cat videos on YouTube",
+        "Search for funny cat videos",  # youtube (general)
+        "Search for The Matrix",  # videocenter (movie)
         "Tell me about the movie Inception"
     ]
     

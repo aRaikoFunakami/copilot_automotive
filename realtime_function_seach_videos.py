@@ -8,7 +8,7 @@ from langchain.tools import BaseTool
 
 class SearchVideosInput(BaseModel):
     service: str = Field(
-        description='Name of video website for video search. Currently, only "youtube" is supported.'
+        description='Name of video website for video search. Use "videocenter" for movies and TV shows, "youtube" for general video content (tutorials, music, etc.).'
     )
     input: str = Field(description="Search string for searching videos.")
 
@@ -16,7 +16,7 @@ class SearchVideosInput(BaseModel):
 class SearchVideos(BaseTool):
     name: str = "search_videos"
     description: str = (
-        "Function to search videos on a specified service via a web page."
+        "Function to search videos on a specified service. Use 'videocenter' for movies and TV shows, 'youtube' for general video content."
     )
     args_schema: Type[BaseModel] = SearchVideosInput
     return_direct: bool = True
@@ -50,6 +50,12 @@ class SearchVideos(BaseTool):
         """Asynchronous video search."""
         try:
             service = service.lower()
+            
+            # Validate service
+            supported_services = ["videocenter", "youtube"]
+            if service not in supported_services:
+                raise ValueError(f"Unsupported service: {service}. Supported services: {', '.join(supported_services)}")
+            
             logging.info(f"Service = {service}, Input = {input}")
 
             response = self._generate_response(service, input)
@@ -70,7 +76,15 @@ class SearchVideos(BaseTool):
 
 # Ensure proper module usage
 if __name__ == "__main__":
-    # Example usage
+    # Example usage with both services
     tool = SearchVideos()
-    result = tool._run("youtube", "funny cats")
-    print(result)
+    
+    # Test videocenter (movies/TV)
+    print("=== Testing videocenter service (movies/TV) ===")
+    result1 = tool._run("videocenter", "Star Wars")
+    print(result1)
+    
+    # Test youtube (general videos)
+    print("\n=== Testing youtube service (general videos) ===")
+    result2 = tool._run("youtube", "cooking tutorials")
+    print(result2)
