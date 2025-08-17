@@ -121,7 +121,13 @@ async def create_new_session(client_id: str, websocket: WebSocket):
     # Prepare the agent
     agent = OpenAIVoiceReactAgent(
         model="gpt-4o-realtime-preview",
-        instructions="Use supervisor tool for requests. Be brief and direct. Return supervisor responses exactly as-is without any modifications or additions.",
+        instructions=(
+            "SYSTEM: For EVERY user message, you MUST call the tool named 'supervisor' and return ONLY the tool result.\n"
+            "You MUST output the tool result VERBATIM: do not translate, rephrase, or modify language, punctuation, whitespace, or formatting.\n"
+            "Do NOT wrap the output with any explanation, prefix, suffix, quotes, code fences, or emojis.\n"
+            "If the user says anything (no matter how simple), call 'supervisor' with the user's raw text as input.\n"
+            "If the tool is unavailable or fails, reply exactly with: 'Supervisor unavailable.'"
+        ),
         tools=[create_supervisor_tool()]
     )
 
@@ -212,6 +218,12 @@ async def handle_websocket_messages(client_id: str, websocket: WebSocket):
             data = json.loads(msg)
         except json.JSONDecodeError:
             # Fallback: treat as user role text
+            await input_queue.put(
+                text_to_realtime_api_json_as_role(
+                    "system",
+                    "FORCE_TOOL: For the next user message, you MUST call the 'supervisor' tool and must not answer directly. You MUST return the tool's output VERBATIM, without any translation, rephrasing, or modification."
+                )
+            )
             msg_as_json = text_to_realtime_api_json_as_role("user", msg)
             await input_queue.put(msg_as_json)
             continue
@@ -329,6 +341,13 @@ async def handle_websocket_messages(client_id: str, websocket: WebSocket):
 
         else:
             # General message, store in input_queue (and/or ai_input_queue if needed)
+            # Inject a system reminder to call 'supervisor' and relay output verbatim without language change
+            await input_queue.put(
+                text_to_realtime_api_json_as_role(
+                    "system",
+                    "FORCE_TOOL: For the next user message, you MUST call the 'supervisor' tool and must not answer directly. You MUST return the tool's output VERBATIM, without any translation, rephrasing, or modification."
+                )
+            )
             await input_queue.put(msg)
     except Exception as e:
         logging.warning(f"WebSocket {client_id} disconnected: {e}")

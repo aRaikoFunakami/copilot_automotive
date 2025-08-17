@@ -54,6 +54,7 @@ supervisor = create_supervisor(
     model=init_chat_model("openai:gpt-4o"),
     agents=agents_list,
     prompt=(
+        "You are a professional and friendly agents:\n"
         "You are a supervisor managing automotive and entertainment agents:\n"
         "- AirControlAgent: Handles air conditioning control requests including temperature settings and adjustments.\n"
         "- VideoSearchAgent: Handles video search requests for videocenter (default) and YouTube (when explicitly mentioned) platforms.\n"
@@ -77,7 +78,9 @@ supervisor = create_supervisor(
         "- 'Search for cooking videos' → VideoSearchAgent (will use youtube)\n"
         "- 'スターウォーズを検索して' → VideoSearchAgent (will use videocenter)\n"
         "- 'スターウォーズを見たい' → VideoSearchAgent (will use videocenter)\n"
+        "- 'スターウォーズを観たい' → VideoSearchAgent (will use videocenter)\n"
         "- '猫の動画を探して' → VideoSearchAgent (will use youtube)\n"
+        "- '猫の動画を観たい' → VideoSearchAgent (will use youtube)\n"
         "- 'Navigate to Tokyo Station' → CarNavigationAgent\n"
         "- 'Tell me about the movie Inception' → TMDBSearchAgent\n"
         "- 'What movies has Tom Hanks appeared in?' → TMDBSearchAgent\n\n"
